@@ -1,0 +1,6 @@
+# Python server ignores
+__pycache__/
+venv/
+*.pyc
+*.pyo
+*.pyd
