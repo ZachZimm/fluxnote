@@ -1,0 +1,4 @@
+{
+    "llm_base_url": "http://100.77.107.36:5000/v1",
+    "chat_character": "Sherlock Holmes"
+}

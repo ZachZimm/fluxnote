@@ -1,11 +1,21 @@
 # TODO rename this file to something LLM related
 import requests
 import os
+import json
 
 
 # TODO implement a proper provider class that can handle the different providers and their respective endpoints
 # alternatively, just implement Langchain
-url = "http://100.120.254.27:5000/v1/chat/completions"
+config_path = "src/config.json"
+config_json  = {}
+if os.path.exists(config_path):
+    with open(config_path, "r") as file:
+        config_json = json.load(file)
+    print("Config file loaded.")
+else:
+    print("Config file not found. Exiting.")
+
+url = f"{config_json['llm_base_url']}/chat/completions"
 
 headers = {
     "Content-Type": "application/json"
@@ -25,11 +35,9 @@ def run_chat_loop():
             user_message = "What is the meaning of life?"
         global history
         history.append({"role": "user", "content": user_message})
-        character = "Sherlock Holmes"
-        character = "Example"
         data = {
             "mode": "chat",
-            "character": character,
+            "character": config_json['chat_character'],
             "messages": history
         }
 
