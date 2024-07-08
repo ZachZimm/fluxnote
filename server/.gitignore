@@ -4,3 +4,5 @@ venv/
 *.pyc
 *.pyo
 *.pyd
+
+history.txt

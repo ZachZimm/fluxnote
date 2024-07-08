@@ -5,13 +5,13 @@
 This document outlines the development plan for the Minimum Viable Product (MVP) of an AI-powered note-taking application. The focus is on backend development and basic AI features, with a later integration of a user interface.
 
 ## Philosophy
-When trying to use and gain andvantage from note taking in the past, I have always struggled with the disconnect of the rigid seperation and hierarchy of ideas on the page from the goal ultimate of an intricate and deep understanding of the interrelation of ideas. As such I have often opted not to take any notes at all as I have become accustomed to learning by listening.
+When trying to use and gain advantage from note taking in the past, I have always struggled with the disconnect of the rigid separation and hierarchy of ideas on the page from the goal ultimate of an intricate and deep understanding of the interrelation of ideas. As such I have often opted not to take any notes at all as I have become accustomed to learning by listening.
 
 While that has not been an issue in itself, I feel that there is great benefit to be derrived by writing. The goal of `fluxnote` then, is to remove the friction from the note taking process by improving the individual and combined usability of user-written notes. Further, `fluxnote` aims to ensure that every note has meaning, and will allow users to use new tools to get more out of their notes than they put in.
 
 `fluxnote` generates signal in the note knowledge base in three main ways. The first is with innovative and deep LLM integration. The LLM integration is multi-layered and configurable at every level. The LLM integration will aim to expand on well-understood topics in real time, as well as suggest questions for a reliable source (whether for web research or an event the user is attending). The LLM is also used to make inferences and draw connections which are not already made clear in the exiting contents of the notes. 
 
-The goal is not not use the LLM to gnerate (/hallucinate) information about a topic (although that is an optional feature). Instead it is used to enhance 'resolution' of the ideas that the user's notes are meant to represent. 
+The goal is not to use the LLM to generate (/hallucinate) information about a topic (although that is an optional feature). Instead it is used to enhance 'resolution' of the ideas that the user's notes are meant to represent. 
 
 Circling back to the friction I have encountered with my own notes in the past, I found that I would rarely gain much by reading my notes. This was often because my notes were a low-resolution representation of what they were meant to tell me. 
 
