@@ -7,14 +7,18 @@ import langchain
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.llms import TextGen
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from utils import read_config
+from langchain_core.prompts import ChatPromptTemplate
+from typing import Optional, Type, Dict, Any
+from langchain_core.pydantic_v1 import BaseModel, Field
+from utils import read_config, parse_llm_output
+from models.Summary import Summary, Idea
+
 
 # TODO create a way of keeping the secrets_config up to date with available secrets without tracking it in git
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
-
+# once I start using something that needs to be secret, anyways
 class langchain_interface():
     chat_character = "Sherlock-Holmes"
     config_path = "src/config.json"
@@ -37,7 +41,11 @@ class langchain_interface():
 
     def stream_langchain_chat_loop(self, history: list = []) -> list:
         history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
-        model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
+        self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
+                                api_key=self.secret_config_json['openai_api_key'],
+                                max_tokens=600,
+                                temperature=0.7
+                                 )
 
         while True:
             message = input("\n> ")
@@ -45,36 +53,50 @@ class langchain_interface():
                 return history
             history.append(HumanMessage(content=message))
             parser = StrOutputParser()
-            chain = model | parser 
+            chain = self.model | parser 
 
             assistant_message = ''
+            print()
             for chunk in chain.stream(history):
                 print(chunk, end="", flush=True)
                 assistant_message += chunk
-
+            print()
             history.append(AIMessage(content=assistant_message))
 
 
-    def langchain_summarize_text(self, text: str, history: list = []) -> list:
+    def langchain_summarize_text(self, text: str, history: list = []) -> tuple[list, Summary]:
         _history = history
         _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
-        history.append(HumanMessage(content=text))
-        model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
         
+        self.model = ChatOpenAI(
+            base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+            max_tokens=1536,
+            temperature=0.5,
+            )
         parser = StrOutputParser()
-        chain = model | parser
+        chain = self.model | parser
         assistant_message = ''
+        print('thinking...')
         for chunk in chain.stream(_history):
-            print(chunk, end="", flush=True)
+            # print(chunk, end="", flush=True) # only print this for debugging
             assistant_message += chunk
-        history.append(AIMessage(content=assistant_message))
-        print()
-        return  history 
+
+        # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
+        summary_result = parse_llm_output(Summary, assistant_message)
+        if summary_result["error"]:
+            print("Exiting...")
+            return history, None
+        summary_obj = summary_result["object"]
+        # print(summary_obj.summary)
+        # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
+        history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
+        return history, summary_obj
 
     def text_summary_loop(self, history: list = []) -> list: 
         print("1: sample_data/marcuscrassus.txt")
         print("2: sample_data/juluiscaesar.txt")
+        print("3: sample_data/thaiculture.txt")
         file_path = input("Provide the path to the text file you would like to summarize:  ")
         if file_path == "exit":
             exit()
@@ -84,6 +106,8 @@ class langchain_interface():
             file_path = "sample_data/marcuscrassus.txt"
         elif file_path == "2":
             file_path = "sample_data/juluiscaesar.txt"
+        elif file_path == "3":
+            file_path = "sample_data/thaiculture.txt"
         elif file_path == "":
             file_path = "../README.md"
         print()
@@ -95,8 +119,11 @@ class langchain_interface():
         with open(file_path, "r") as file:
             text = file.read()
         
-        history = self.langchain_summarize_text(text, history)
+        history, summary = self.langchain_summarize_text(text, history)
 
+        # once a little more infrastructure is in place, we can save the summaries to a database
+        # the database entries should include the user, the topic, the original text, the summary object, and the date
+        
         return history
 
 
