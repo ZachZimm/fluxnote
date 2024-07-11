@@ -1,20 +1,10 @@
-# TODO rename this file to something LLM related
-import sys
-import requests
 import os
-import json
-import langchain
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate
-from typing import Optional, Type, Dict, Any
-from langchain_core.pydantic_v1 import BaseModel, Field
 from utils import read_config, parse_llm_output
 from models.Summary import Summary, Idea
-
 
 # TODO create a way of keeping the secrets_config up to date with available secrets without tracking it in git
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
@@ -63,6 +53,30 @@ class langchain_interface():
             print()
             history.append(AIMessage(content=assistant_message))
 
+    async def stream_langchain_chat_loop_async(self, history: list = []) -> list:
+        history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
+        self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
+                                api_key=self.secret_config_json['openai_api_key'],
+                                max_tokens=600,
+                                temperature=0.7
+                                 )
+
+        while True:
+            message = input("\n> ")
+            if message == "exit":
+                return history
+            history.append(HumanMessage(content=message))
+            parser = StrOutputParser()
+            chain = self.model | parser 
+
+            assistant_message = ''
+            print()
+            for chunk in chain.astream(history):
+                print(chunk, end="", flush=True)
+                assistant_message += chunk
+                # yield chunk
+            print()
+            history.append(AIMessage(content=assistant_message))
 
     def langchain_summarize_text(self, text: str, history: list = []) -> tuple[list, Summary]:
         _history = history
@@ -77,12 +91,45 @@ class langchain_interface():
         parser = StrOutputParser()
         chain = self.model | parser
         assistant_message = ''
-        print('thinking...')
+        print('summarizing...')
         for chunk in chain.stream(_history):
             # print(chunk, end="", flush=True) # only print this for debugging
             assistant_message += chunk
 
         # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
+        # TODO I still don't think this recursively parses keys from the model.
+        summary_result = parse_llm_output(Summary, assistant_message)
+        if summary_result["error"]:
+            print("Exiting...")
+            return history, None
+        summary_obj = summary_result["object"]
+        # print(summary_obj.summary)
+        # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
+        history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
+        return history, summary_obj
+
+    async def langchain_summarize_text_async(self, text: str, history: list = []) -> tuple[list, Summary]:
+        _history = history
+        _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
+        _history.append(HumanMessage(content=text))
+        
+        self.model = ChatOpenAI(
+            base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+            max_tokens=1536,
+            temperature=0.5,
+            )
+        parser = StrOutputParser()
+        chain = self.model | parser
+        assistant_message = ''
+        print('summarizing...')
+        # for chunk in chain.astream(_history):
+            # print(chunk, end="", flush=True) # only print this for debugging
+            # assistant_message += chunk
+        assistant_message = await chain.ainvoke(_history)
+        
+
+        # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
+        # TODO I still don't think this recursively parses keys from the model.
         summary_result = parse_llm_output(Summary, assistant_message)
         if summary_result["error"]:
             print("Exiting...")

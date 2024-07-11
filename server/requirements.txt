@@ -1,3 +1,6 @@
 websocket-client
 langchain-community
 langchain_openai
+pymediawiki
+fastapi
+uvicorn
