@@ -13,13 +13,6 @@ loop = asyncio.new_event_loop()
 async def send_ws_message(websocket: WebSocket, message: str):
     await websocket.send_json({"message": message})
 
-def streaming_callback(websocket: WebSocket, message: str):
-    # asyncio.run(send_ws_message(websocket, message))    
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(send_ws_message(websocket, message))
-    loop.close()
-
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
     await websocket.accept()
@@ -27,11 +20,14 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
     lc_interface = langchain_interface()
     wiki_results = []
     history = []
+    wiki = WikiInterface()
 
     # this will be replaced with a database query
     # or just a filesystem lookup depending on the implementation
     # or user preferences
-    available_files = ["sample_data/marcuscrassus.txt", "sample_data/juluiscaesar.txt", "sample_data/thaiculture.txt"]
+    files_in_dir = os.listdir("sample_data")
+    available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
+    # available_files = ["sample_data/marcuscrassus.txt", "sample_data/juluiscaesar.txt", "sample_data/thaiculture.txt"]
 
     while True: # This seems like a really poor way to handle this
                 # surely the different cases can at least be split into functions / files
@@ -63,10 +59,13 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 text = file.read()
 
             history, summary = await lc_interface.langchain_summarize_text_async(text, history)
+            summary_string = json.dumps(summary.model_dump())
+            history = lc_interface.append_history(summary_string, history, is_human = False)
             if summary:
-                await send_ws_message(websocket, json.dumps(summary.model_dump()))
+                await send_ws_message(websocket, summary_string)
             else:
                 await send_ws_message(websocket, "Error summarizing text.")
+
         elif data == "chat":
             await websocket.send_text("Chat:")
             while True:
@@ -86,7 +85,6 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 print(assistant_message)
         elif data == "wiki search":
             await send_ws_message(websocket, "Enter a search term:")
-            wiki = WikiInterface()
             query = await websocket.receive_text() # TODO This should be recveive_json
             query_results = wiki.search(query)
             max_results = 10
@@ -108,7 +106,7 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 await send_ws_message(websocket, "Enter the name of a wikipedia page:")
             query = await websocket.receive_text() # TODO This should be recveive_json
             query = query.strip()
-            if not query.isdigit() and query != "wikid":
+            if not query.isdigit() and data != "wikid":
                 await send_ws_message(websocket, "Invalid input. Enter a number corresponding to a search result.")
                 await send_ws_message(websocket, "Enter 'wiki search' to search for a topic.\nOr 'wiki results' to see the search results.")
 
@@ -117,8 +115,17 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                     data = wiki.get_data(query.strip())
                 else:
                     data = wiki.get_data(wiki_results[int(query) - 1])
+
                 await send_ws_message(websocket, f"Wiki info for {data.title} downloaded.")
                 await send_ws_message(websocket, f"Summary: {data.summary}")
+                await send_ws_message(websocket, f"Download content? (y/n)")
+                download_content = await websocket.receive_text()
+                if 'y' in download_content:
+                    filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
+                    with open(filepath, "w") as file:
+                        file.write(data.content)
+                    await send_ws_message(websocket, f"Content downloaded to {filepath}")
+                    available_files.append(filepath)
                         
         elif data == "clear":
             history = []

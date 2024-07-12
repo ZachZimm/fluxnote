@@ -1,0 +1,100 @@
+The Razer Blade Stealth is a laptop lineup from Razer Inc. It was first launched 6 January 2016 during the Consumer Electronics Show alongside the Razer Core, the external graphics box. The product won the CES 2016 Best Laptop Award for its unique design choice of detaching the powerful GPU from the main device and connecting the two via Thunderbolt 3, thus allowing users to choose either power or portability. The current lineup consists of 5 versions of this laptop - 2016, early 2017, late 2017, 2019, and 2020 models - and 3 versions of the Razer Core - Razer Core V1, Razer Core V2, and Razer Core X.
+
+
+== History ==
+Razer initially started with developing gaming mice. In 2012, they started their first step towards making gaming laptops with the Razer Blade, which featured game oriented graphics, macro programmable keyboards and a touchscreen touchpad. Razer refreshed the product in 2014 with a similar design to ordinary laptops. In 2016, the company launched the Razer Blade Stealth. The device was no longer following a trend of installing gaming graphic cards, but instead, attach a mobile Intel U processor and amplify the graphics performance using the external graphic box.
+
+
+== Razer Blade Stealth (2016) ==
+
+
+=== Launch ===
+The laptop was launched at CES 2016. The price was US$999 for a QHD model.
+
+
+=== Hardware ===
+
+
+==== Thunderbolt 3 support ====
+The Razer Blade Stealth's power plug supports Thunderbolt 3 supports with 4 lanes of PCI Express. It works like a USB, but with much quicker respond speed, capable of receiving 10 Gigabits per second from connected external hardware, such as the external graphics card box. The concept of external graphics was introduced with the Dell Alienware series. However, it required specific hardware called the Alienware graphics amplifying box which doesn't use Thunderbolt 3.
+
+
+==== Razer Chroma and Synapse software support ====
+
+Razer Blade Stealth supports full Chroma lightning with Razer Synapse software. Chroma lighting is a unique light feature on all Razer mouse and keyboard products. The device comes with pre-installed Razer Synapse software and the software supports key clicks, Macro creating and other features that are supported within other Razer keyboards.
+
+
+=== Variants (2016 model) ===
+
+
+=== Reception ===
+Razer Blade Stealth won Best PC at the 2016 Consumer Electronics Show. The laptop was praised for its Razer Chroma lighting, Thunderbolt 3 support and unique design compare to other competitors like the Dell XPS 13 and LG Gram.
+PCMag rated the laptop 4 out of 5 stars.
+
+
+== Razer Blade Stealth (Early 2017, Late 2017) ==
+
+
+=== Launch ===
+Early 2017 variants were launched during CES and in late 2017 was launched online only.
+
+
+=== Hardware ===
+
+
+==== Early 2017 ====
+The laptop was updated with Intel 7th gen CPU. Another Variant with core i5 to reduce the price. Core i5 version retails at around US$900 and still have the same specification with another model, except the CPU processor. Also, the touchpad was improved by supporting Windows precision driver setting as a default. Therefore, it supports Windows touchpad gestures.
+
+
+==== Late 2017 ====
+Refreshed with 13-inch screen from 12.5, by reducing the side bezel. Late 2017 comes with two colors, which is gunmetal color and black with green Razer logo.
+Late 2017 comes with same form factors with early 2017 and CPU upgrade from 7th gen Intel i7 CPU to 8th get Intel i7 CPU.
+
+
+=== Variants (Early 2017) ===
+
+
+=== Variants (Late 2017) ===
+
+
+== Razer Blade Stealth (2019) ==
+
+
+=== Launch ===
+The 2019 model of Razer Blade Stealth was announced on CES 2019, which was held on 8 January 2019.
+
+
+=== Hardware ===
+
+Razer refreshed the design of Razer Blade Stealth toward more unique design then before. Also, the design language now fits with their Razer Blade 15 lineup. There is no longer a glowing green LED Razer logo behind the laptop lid. It also no longer supports Razer Chroma, instead having a single light zone for its keyboard. The display bezel was shrunk down to have a 14-inch screen on a 13-inch form factor. The touchpad was updated from plastic finish to glass finish.
+The Razer Blade Stealth's camera supports IR bio-metrics. Hence, it will support Windows hello functionality.
+One of the variant is using MX150 graphics card, which can perform about 30% better than the 8th gen Intel's internal graphics. Thus, 2019 model can play light game and show better video editing performance without the external Razer Core.
+
+
+=== Variants (2019) ===
+
+
+== Razer Core ==
+The Razer Core is an external graphics card container. This box connects to a laptop via Thunderbolt 3 and increases the graphics power of the laptop.
+The core is a GPU mounter. Therefore, it does not come with the graphics card itself. The variation of GPU that can be mounted to the core is as follows.
+
+
+=== Razer Core V1 ===
+
+Razer Core V1 was introduced at CES 2016 and launched after the event. It was retailed at $499 USD. The device can store full-length double-wide PCle desktop graphics cards, including AMD and Nvidia graphic cards.
+The Razer Core contains 4 USB 3.0 ports, Gigabit Ethernet port and Thunderbolt connection to connect with the laptop. 
+
+
+=== Razer Core V2 ===
+The Razer Core V2 was introduced with the late 2017 version of the Razer Blade Stealth. The V2 fixed one of the major issue of the V1, which is that USB 3.0 does not work well when using GPU intensive programs, due to using one PCle line for both USB and Thunderbolt connections. The V2 uses separate PCle line for the two connections. The box was also made larger to handle larger GPUs.  
+
+
+=== Razer Core X ===
+Razer Core X was launched to the market at the end of 2018. It retailed at $299 USD. The specification of product is unchanged from the Core V2. However, Razer Chroma Lightning was removed to reduce the price, as well as the 4 USB 3.0 ports and Gigabit Ethernet. 
+
+
+=== Razer Core X Chroma ===
+Razer Core X Chroma was launched to the market on April 16, 2019. It retailed at $399 USD. It comes with 4 × USB 3.1 and a Gigabit Ethernet port.
+
+
+== References ==
