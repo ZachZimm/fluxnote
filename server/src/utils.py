@@ -13,7 +13,7 @@ def read_config(config_path: str) -> dict:
         return {}
 
 def get_all_keys(schema: Dict[str, Any], parent_key: str = '') -> set: # TODO this still does not get nested keys
-    keys = set()
+    keys = set()                                                    # as far as I can tell
     if 'properties' in schema:
         for key, value in schema['properties'].items():
             new_key = f"{parent_key}.{key}" if parent_key else key
@@ -35,18 +35,17 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
     try:        
         llm_output = llm_output[llm_output.find('{'):llm_output.rfind('}')+1]
         # Extract the expected keys from the model
-        expected_keys = get_all_keys(model_class.model_json_schema())
         
+        llm_output = llm_output.replace('\n', '').replace('\t', '')       
         # Replace keys surrounded by single quotes with double quotes
-        for key in expected_keys:
-            llm_output = llm_output.replace(f"'{key}'", f'"{key}"')
-        llm_output = llm_output.replace('\n', '').replace('\t', '')
+        
 
         llm_output = llm_output.strip()
         llm_output.replace("\n", " ")
         llm_output = llm_output.replace("  ", " ") # Remove double spaces
         llm_output = llm_output.replace("  ", " ") # do it again in case of an odd number of spaces
         llm_output = llm_output.replace("} {", "}, {").replace("}{", "},{") # Add missing commas between objects
+        llm_output = llm_output.replace("\\", "") # Remove backslashes
         llm_output = replace_double_quotes_within_string(llm_output) # Replace double quotes within strings
 
         # Now we need to ensure that the keys and values are enclosed in double quotes
@@ -56,7 +55,14 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
         llm_output = llm_output.replace('{\'', '{"').replace('\':', '":').replace('\',', '",')
         # Replace single quotes around a string with double quotes
         llm_output = llm_output.replace('": \'', '": "').replace('\',', '",').replace('\'}', '"}')
+        
         llm_output = llm_output.replace("' s", "'s") # Fix possessive 's - not sure why this is necessary
+        expected_keys = get_all_keys(model_class.model_json_schema())
+        for key in expected_keys:
+            llm_output = llm_output.replace(f"'{key}'", f'"{key}"')
+            llm_output = llm_output.replace(f"'{key}\"", f'"{key}"')
+            llm_output = llm_output.replace(f"\"{key}'", f'"{key}"')
+
 
         # this code is specific to the Summary model, it may not even be necessary
         if model_class.__name__ == "Summary":

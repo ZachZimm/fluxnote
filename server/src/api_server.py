@@ -1,16 +1,31 @@
+import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
+from wiki_interface import WikiInterface
 import os
 import json
+import threading
 import asyncio
 
 app = FastAPI()
+loop = asyncio.new_event_loop()
+
+async def send_ws_message(websocket: WebSocket, message: str):
+    await websocket.send_json({"message": message})
+
+def streaming_callback(websocket: WebSocket, message: str):
+    # asyncio.run(send_ws_message(websocket, message))    
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(send_ws_message(websocket, message))
+    loop.close()
+
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
     await websocket.accept()
     await websocket.send_text("Enter 'options' to see available text files to summarize or 'exit' to quit.")
     lc_interface = langchain_interface()
+    wiki_results = []
     history = []
 
     # this will be replaced with a database query
@@ -18,7 +33,8 @@ async def websocket_endpoint(websocket: WebSocket):
     # or user preferences
     available_files = ["sample_data/marcuscrassus.txt", "sample_data/juluiscaesar.txt", "sample_data/thaiculture.txt"]
 
-    while True:
+    while True: # This seems like a really poor way to handle this
+                # surely the different cases can at least be split into functions / files
 
         data = await websocket.receive_text()
         data = data.strip()
@@ -34,7 +50,7 @@ async def websocket_endpoint(websocket: WebSocket):
             options_message.append("Provide the number corresponding with text file you would like to summarize:")
 
             for message in options_message:
-                await websocket.send_text(message)
+                await send_ws_message(websocket, message)
         elif data.isdigit():
             file_path = data
             file_path = available_files[int(file_path) - 1]
@@ -48,26 +64,72 @@ async def websocket_endpoint(websocket: WebSocket):
 
             history, summary = await lc_interface.langchain_summarize_text_async(text, history)
             if summary:
-                await websocket.send_text(json.dumps(summary.model_dump()))
+                await send_ws_message(websocket, json.dumps(summary.model_dump()))
             else:
-                await websocket.send_text("Error summarizing text.")
+                await send_ws_message(websocket, "Error summarizing text.")
+        elif data == "chat":
+            await websocket.send_text("Chat:")
+            while True:
+                chat_data = await websocket.receive_text() # TODO This should be recveive_json
+                user_message = chat_data.strip()
+                if user_message == "exit":
+                    break
+
+                history = lc_interface.append_history(user_message, history, is_human = True)
+                generator = await lc_interface.stream_langchain_chat_loop_async_generator(history)
+                assistant_message = ""
+                async for chunk in generator:
+                    assistant_message += chunk
+                    await send_ws_message(websocket, chunk)
+
+                history = lc_interface.append_history(assistant_message, history, is_human = False)
+                print(assistant_message)
+        elif data == "wiki search":
+            await send_ws_message(websocket, "Enter a search term:")
+            wiki = WikiInterface()
+            query = await websocket.receive_text() # TODO This should be recveive_json
+            query_results = wiki.search(query)
+            max_results = 10
+            wiki_results = []
+            for i, result in enumerate(query_results):
+                if i >= max_results:
+                    break
+                await send_ws_message(websocket, f"{i + 1}. {result}")
+                wiki_results.append(result)
+        elif data == "wiki results":
+            for i, result in enumerate(wiki_results):
+                await send_ws_message(websocket, f"{i + 1}. {result}")
+        elif data == "wiki" or data == "wikid":
+            if len(wiki_results) == 0 and data == "wiki":
+                await send_ws_message(websocket, "No search results. Enter 'wiki search' to search for a topic.")
+            if data == "wiki":
+                await send_ws_message(websocket, "Enter a number corresponding to a search result:")
+            else:
+                await send_ws_message(websocket, "Enter the name of a wikipedia page:")
+            query = await websocket.receive_text() # TODO This should be recveive_json
+            query = query.strip()
+            if not query.isdigit() and query != "wikid":
+                await send_ws_message(websocket, "Invalid input. Enter a number corresponding to a search result.")
+                await send_ws_message(websocket, "Enter 'wiki search' to search for a topic.\nOr 'wiki results' to see the search results.")
+
+            else:
+                if data == "wikid":
+                    data = wiki.get_data(query.strip())
+                else:
+                    data = wiki.get_data(wiki_results[int(query) - 1])
+                await send_ws_message(websocket, f"Wiki info for {data.title} downloaded.")
+                await send_ws_message(websocket, f"Summary: {data.summary}")
+                        
+        elif data == "clear":
+            history = []
+            await send_ws_message(websocket, "History cleared.")
         else:
-            await websocket.send_text("Invalid input. Enter 'options' to see available text files to summarize or 'exit' to quit.")
+            await send_ws_message(websocket, "Invalid input. Enter 'options' to see available text files to summarize or 'exit' to quit.")
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8090)
+
 # TODO
-# implement a fastapi server that can be used to interact with the langchain_interface
 # things to think about:
-# Websockets
 # Users (authentication?)
 # Topics
-
-# Probably for a different part of the code: a resolution aware conversation
-# ex: "I want to know more about X" -> Finds ideas closely related to X -> Searches the database for detailed information (high resolution summaries) on X related ideas -> Generates a response with the most relevant information
-
-# if __name__ == "__main__":
-#     langchain_i = langchain_interface()
-#     history = langchain_i.text_summary_loop()
-#     langchain_i.stream_langchain_chat_loop(history)
