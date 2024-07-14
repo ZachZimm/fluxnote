@@ -24,10 +24,11 @@ def get_all_keys(schema: Dict[str, Any], parent_key: str = '') -> set: # TODO th
     return keys
 
 def replace_double_quotes_within_string(json_string):
-    pattern = r'(?<![:\[\{])\s*"\s*(?=[a-zA-Z0-9_\.\s])'
+    pattern = r'(?=[a-z]<![:\[\{])\s*"\s*(?=[a-zA-Z0-9_\.]<![,])\s'
     replacement = "'"
     result = re.sub(pattern, replacement, json_string)
     return result
+
 
 def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str, Any]:
     # This function santizes JSON output from the LLM and returns an object of the model type passed in 
@@ -50,11 +51,11 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
 
         # Now we need to ensure that the keys and values are enclosed in double quotes
         # First single quote replacement pass, not totally sure what it does anymore, it tried to do eveything
-        llm_output = llm_output.replace(': \'', ': "').replace('\'}', '"}').replace("':", '":').replace("',", '",')
+        llm_output = llm_output.replace(': \'', ': "').replace('\'}', '"}').replace("':", '":')#.replace("',", '",')
         # Replace single quotes around inner keys that were missed by the previous step
-        llm_output = llm_output.replace('{\'', '{"').replace('\':', '":').replace('\',', '",')
+        llm_output = llm_output.replace('{\'', '{"').replace('\':', '":')#.replace('\',', '",')
         # Replace single quotes around a string with double quotes
-        llm_output = llm_output.replace('": \'', '": "').replace('\',', '",').replace('\'}', '"}')
+        llm_output = llm_output.replace('": \'', '": "').replace('\'}', '"}')
         
         llm_output = llm_output.replace("' s", "'s") # Fix possessive 's - not sure why this is necessary
         expected_keys = get_all_keys(model_class.model_json_schema())

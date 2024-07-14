@@ -1,4 +1,5 @@
 import os
+import time
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -105,6 +106,7 @@ class langchain_interface():
     #     return history, summary_obj
 
     async def langchain_summarize_text_async(self, text: str, history: list = []) -> tuple[list, Summary]:
+        time_start = time.time()
         _history = history
         _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
@@ -126,7 +128,8 @@ class langchain_interface():
             print("Exiting...")
             return history, None
         summary_obj = summary_result["object"]
-        # print(summary_obj.summary)
+        runtime = time.time() - time_start
+        print(f"Runtime: {round(runtime, 2)} seconds")
         # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
         history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
         return history, summary_obj

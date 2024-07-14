@@ -9,14 +9,16 @@ import asyncio
 
 app = FastAPI()
 loop = asyncio.new_event_loop()
+welcome_message = "Enter 'options' to see available text files to summarize or 'exit' to quit."
 
-async def send_ws_message(websocket: WebSocket, message: str):
-    await websocket.send_json({"message": message})
+
+async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default"):
+    await websocket.send_json({"message": message, "mode": mode})
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
     await websocket.accept()
-    await websocket.send_text("Enter 'options' to see available text files to summarize or 'exit' to quit.")
+    await send_ws_message(websocket, welcome_message, mode="welcome")
     lc_interface = langchain_interface()
     wiki_results = []
     history = []
@@ -52,7 +54,7 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
             file_path = available_files[int(file_path) - 1]
 
             if not os.path.exists(file_path):
-                await websocket.send_text("File not found.")
+                await send_ws_message(websocket, "File not found.")
                 continue
 
             with open(file_path, "r") as file:
@@ -62,12 +64,12 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
             summary_string = json.dumps(summary.model_dump())
             history = lc_interface.append_history(summary_string, history, is_human = False)
             if summary:
-                await send_ws_message(websocket, summary_string)
+                await send_ws_message(websocket, summary_string, mode="summary")
             else:
-                await send_ws_message(websocket, "Error summarizing text.")
+                await send_ws_message(websocket, "Error summarizing text.", mode="summary error")
 
         elif data == "chat":
-            await websocket.send_text("Chat:")
+            await send_ws_message(websocket, "Chat:", mode="chat")
             while True:
                 chat_data = await websocket.receive_text() # TODO This should be recveive_json
                 user_message = chat_data.strip()
@@ -79,7 +81,8 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 assistant_message = ""
                 async for chunk in generator:
                     assistant_message += chunk
-                    await send_ws_message(websocket, chunk)
+                    await send_ws_message(websocket, chunk, mode="chat_streaming")
+                await send_ws_message(websocket, "<stream_finished>", mode="chat_streaming")
 
                 history = lc_interface.append_history(assistant_message, history, is_human = False)
                 print(assistant_message)
@@ -95,20 +98,21 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 await send_ws_message(websocket, f"{i + 1}. {result}")
                 wiki_results.append(result)
         elif data == "wiki results":
-            for i, result in enumerate(wiki_results):
-                await send_ws_message(websocket, f"{i + 1}. {result}")
+            await send_ws_message(websocket, json.dumps(wiki_results), mode="wiki search")
+            # for i, result in enumerate(wiki_results):
+                # await send_ws_message(websocket, f"{i + 1}. {result}")
         elif data == "wiki" or data == "wikid":
             if len(wiki_results) == 0 and data == "wiki":
-                await send_ws_message(websocket, "No search results. Enter 'wiki search' to search for a topic.")
+                await send_ws_message(websocket, "No search results. Enter 'wiki search' to search for a topic.", mode="wiki error")
             if data == "wiki":
-                await send_ws_message(websocket, "Enter a number corresponding to a search result:")
+                await send_ws_message(websocket, "Enter a number corresponding to a search result:", mode="wiki")
             else:
-                await send_ws_message(websocket, "Enter the name of a wikipedia page:")
+                await send_ws_message(websocket, "Enter the name of a wikipedia page:", mode="wiki")
             query = await websocket.receive_text() # TODO This should be recveive_json
             query = query.strip()
             if not query.isdigit() and data != "wikid":
-                await send_ws_message(websocket, "Invalid input. Enter a number corresponding to a search result.")
-                await send_ws_message(websocket, "Enter 'wiki search' to search for a topic.\nOr 'wiki results' to see the search results.")
+                await send_ws_message(websocket, "Invalid input. Enter a number corresponding to a search result.", mode="wiki error")
+                await send_ws_message(websocket, "Enter 'wiki search' to search for a topic.\nOr 'wiki results' to see the search results.", mode="wiki error")
 
             else:
                 if data == "wikid":
@@ -116,15 +120,15 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 else:
                     data = wiki.get_data(wiki_results[int(query) - 1])
 
-                await send_ws_message(websocket, f"Wiki info for {data.title} downloaded.")
-                await send_ws_message(websocket, f"Summary: {data.summary}")
-                await send_ws_message(websocket, f"Download content? (y/n)")
+                await send_ws_message(websocket, f"Wiki info for {data.title} downloaded.", mode="wiki")
+                await send_ws_message(websocket, f"Summary: {data.summary}", mode="wiki")
+                await send_ws_message(websocket, f"Download content? (y/n)", mode="wiki")
                 download_content = await websocket.receive_text()
                 if 'y' in download_content:
                     filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
                     with open(filepath, "w") as file:
                         file.write(data.content)
-                    await send_ws_message(websocket, f"Content downloaded to {filepath}")
+                    await send_ws_message(websocket, f"Content downloaded to {filepath}", mode="wiki")
                     available_files.append(filepath)
                         
         elif data == "clear":
