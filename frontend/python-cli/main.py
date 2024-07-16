@@ -19,7 +19,7 @@ def print_json_message(json_str):
     if dict_obj["mode"] == "chat":
         print(f"Chat: {dict_obj['message']}")
         return
-    elif dict_obj["mode"] == "chat_streaming":
+    elif 'streaming' in dict_obj["mode"]:
         print(dict_obj["message"], end="", flush=True)
         return
     elif "summary" in dict_obj["mode"]:
@@ -33,13 +33,6 @@ def print_json_message(json_str):
     else:
         print(f"{dict_obj['mode']}: {dict_obj['message']}")
         return
-    # for key in dict_obj.keys():
-    #     if dict_obj[key] == "summary":
-    #         print(f"{type(dict_obj[key])}: key")
-    #     if key == "message":
-    #         print(f"{key}: {dict_obj[key]}")
-    #     else:
-    #         print(f"{key}: {dict_obj[key]}")
 
 async def websocket_client():
     uri = f"ws://{config['hostname']}:{config['port']}/ws"  # Adjust the URI as needed
@@ -48,50 +41,17 @@ async def websocket_client():
         
         while True:
             message = await websocket.recv()
-            print_json_message(message)
             message_dict = json.loads(message)
-            if message_dict["mode"] == "summary":
-                print("summary mode")
-                user_input = input("Enter your command: ")
-                await websocket.send(user_input)
-                continue
 
-            
-            if "Enter 'options' to see available text files to summarize or 'exit' to quit." in message:
-                user_input = input("Enter your command: ")
+            if ('streaming' not in message_dict["mode"]) or ('finished' in message_dict["mode"]):
+                if 'finished' in message_dict["mode"]:
+                    print()
+                else: print_json_message(message)
+                user_input = input("> ")
                 await websocket.send(user_input)
-            elif "Provide the number corresponding with text file you would like to summarize:" in message:
-                user_input = input("Enter the file number: ")
-                await websocket.send(user_input)
-            elif "Chat:" in message:
-                while True:
-                    user_input = input("> ")
-                    await websocket.send(user_input)
-                    while True:
-                        message = await websocket.recv()
-                        if "<stream_finished>" in message:
-                            break
-                        print_json_message(message)
-                    if user_input == "exit":
-                        break
-                    print("\n")
-            elif "Enter a search term:" in message:
-                user_input = input("Enter search term: ")
-                await websocket.send(user_input)
-            elif "Enter a number corresponding to a search result:" in message:
-                user_input = input("Enter result number: ")
-                await websocket.send(user_input)
-            elif "Enter the name of a wikipedia page:" in message:
-                user_input = input("Enter page name: ")
-                await websocket.send(user_input)
-            elif "Download content? (y/n)" in message:
-                user_input = input("Download content? (y/n): ")
-                await websocket.send(user_input)
-            elif "History cleared." in message:
-                user_input = input("Enter your command: ")
-                await websocket.send(user_input)
-            elif "Invalid input." in message:
-                user_input = input("Enter your command: ")
-                await websocket.send(user_input)
+                print()
+
+            else:
+                print_json_message(message)
 
 asyncio.get_event_loop().run_until_complete(websocket_client())

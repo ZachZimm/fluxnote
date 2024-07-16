@@ -29,7 +29,6 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
     # or user preferences
     files_in_dir = os.listdir("sample_data")
     available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
-    # available_files = ["sample_data/marcuscrassus.txt", "sample_data/juluiscaesar.txt", "sample_data/thaiculture.txt"]
 
     while True: # This seems like a really poor way to handle this
                 # surely the different cases can at least be split into functions / files
@@ -47,8 +46,7 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 options_message.append(f"{i + 1}: {file}")
             options_message.append("Provide the number corresponding with text file you would like to summarize:")
 
-            for message in options_message:
-                await send_ws_message(websocket, message)
+            await send_ws_message(websocket, json.dumps(options_message), mode="options")
         elif data.isdigit():
             file_path = data
             file_path = available_files[int(file_path) - 1]
@@ -69,11 +67,12 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 await send_ws_message(websocket, "Error summarizing text.", mode="summary error")
 
         elif data == "chat":
-            await send_ws_message(websocket, "Chat:", mode="chat")
+            await send_ws_message(websocket, "Enter 'exit' to quit chat.", mode="chat")
             while True:
                 chat_data = await websocket.receive_text() # TODO This should be recveive_json
                 user_message = chat_data.strip()
                 if user_message == "exit":
+                    await send_ws_message(websocket, "Exiting chat.", mode="chat exit")
                     break
 
                 history = lc_interface.append_history(user_message, history, is_human = True)
@@ -81,8 +80,8 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                 assistant_message = ""
                 async for chunk in generator:
                     assistant_message += chunk
-                    await send_ws_message(websocket, chunk, mode="chat_streaming")
-                await send_ws_message(websocket, "<stream_finished>", mode="chat_streaming")
+                    await send_ws_message(websocket, chunk, mode="chat streaming")
+                await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
 
                 history = lc_interface.append_history(assistant_message, history, is_human = False)
                 print(assistant_message)
@@ -95,10 +94,11 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
             for i, result in enumerate(query_results):
                 if i >= max_results:
                     break
-                await send_ws_message(websocket, f"{i + 1}. {result}")
+                # await send_ws_message(websocket, f"{i + 1}. {result}", mode="wiki search results")
                 wiki_results.append(result)
+            await send_ws_message(websocket, json.dumps(wiki_results), mode="wiki search results")
         elif data == "wiki results":
-            await send_ws_message(websocket, json.dumps(wiki_results), mode="wiki search")
+            await send_ws_message(websocket, json.dumps(wiki_results), mode="wiki search results")
             # for i, result in enumerate(wiki_results):
                 # await send_ws_message(websocket, f"{i + 1}. {result}")
         elif data == "wiki" or data == "wikid":
@@ -133,9 +133,9 @@ async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagi
                         
         elif data == "clear":
             history = []
-            await send_ws_message(websocket, "History cleared.")
+            await send_ws_message(websocket, "History cleared.", mode="status")
         else:
-            await send_ws_message(websocket, "Invalid input. Enter 'options' to see available text files to summarize or 'exit' to quit.")
+            await send_ws_message(websocket, "Invalid input. Enter 'options' to see available text files to summarize or 'exit' to quit.", mode="status")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8090)

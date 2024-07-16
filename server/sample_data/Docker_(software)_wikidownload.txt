@@ -1,0 +1,85 @@
+Docker is a set of platform as a service (PaaS) products that use OS-level virtualization to deliver software in packages called containers. 
+The service has both free and premium tiers. The software that hosts the containers is called Docker Engine. It was first released in 2013 and is developed by Docker, Inc.
+Docker is a tool that is used to automate the deployment of applications in lightweight containers so that applications can work efficiently in different environments in isolation.
+
+
+== Background ==
+Containers are isolated from one another and bundle their own software, libraries and configuration files; they can communicate with each other through well-defined channels. Because all of the containers share the services of a single operating system kernel, they use fewer resources than virtual machines.
+
+
+=== Operation ===
+
+Docker can package an application and its dependencies in a virtual container that can run on any Linux, Windows, or macOS computer. This enables the application to run in a variety of locations, such as on-premises, in public (see decentralized computing, distributed computing, and cloud computing) or private cloud. When running on Linux, Docker uses the resource isolation features of the Linux kernel (such as cgroups and kernel namespaces) and a union-capable file system (such as OverlayFS) to allow containers to run within a single Linux instance, avoiding the overhead of starting and maintaining virtual machines. Docker on macOS uses a Linux virtual machine to run the containers.
+Because Docker containers are lightweight, a single server or virtual machine can run several containers simultaneously. A 2018 analysis found that a typical Docker use case involves running eight containers per host, and that a quarter of analyzed organizations run 18 or more per host. It can also be installed on a single board computer like the Raspberry Pi.
+The Linux kernel's support for namespaces mostly isolates an application's view of the operating environment, including process trees, network, user IDs and mounted file systems, while the kernel's cgroups provide resource limiting for memory and CPU. Since version 0.9, Docker includes its own component (called libcontainer) to use virtualization facilities provided directly by the Linux kernel, in addition to using abstracted virtualization interfaces via libvirt, LXC and systemd-nspawn.
+Docker implements a high-level API to provide lightweight containers that run processes in isolation.
+
+
+== Licensing model ==
+The Docker Engine is licensed under the Apache License 2.0. Docker Desktop distributes some components that are licensed under the GNU General Public License. Docker Desktop is not free for large enterprises.
+The Dockerfile files can be licensed under an open-source license themselves. The scope of such a license statement is only the Dockerfile and not the container image.
+
+
+== Components ==
+The Docker software as a service offering consists of three components:
+
+Software: The Docker daemon, called dockerd, is a persistent process that manages Docker containers and handles container objects. The daemon listens for requests sent via the Docker Engine API. The Docker client program, called docker, provides a command-line interface (CLI) that allows users to interact with Docker daemons.
+Objects: Docker objects are various entities used to assemble an application in Docker. The main classes of Docker objects are images, containers, and services.
+A Docker container is a standardized, encapsulated environment that runs applications. A container is managed using the Docker API or CLI. It is a process created from an image.
+A Docker image is a read-only template used to build containers. Images are used to store and ship applications. It is a process image.
+A Docker service allows containers to be scaled across multiple Docker daemons. The result is known as a swarm, a set of cooperating daemons that communicate through the Docker API.
+Registries: A Docker registry is a repository for Docker images. Docker clients connect to registries to download ("pull") images for use or upload ("push") images that they have built. Registries can be public or private. The main public registry is Docker Hub. Docker Hub is the default registry where Docker looks for images. Docker registries also allow the creation of notifications based on events.
+An example of a Dockerfile:
+
+
+=== Tools ===
+Docker Compose is a tool for defining and running multi-container Docker applications. It uses YAML files to configure the application's services and performs the creation and start-up process of all the containers with a single command. The docker-compose CLI utility allows users to run commands on multiple containers at once; for example, building images, scaling containers, running containers that were stopped, and more. Commands related to image manipulation, or user-interactive options, are not relevant in Docker Compose because they address one container. The docker-compose.yml file is used to define an application's services and includes various configuration options. For example, the build option defines configuration options such as the Dockerfile path, the command option allows one to override default Docker commands, and more. The first public beta version of Docker Compose (version 0.0.1) was released on December 21, 2013. The first production-ready version (1.0) was made available on October 16, 2014.
+Docker Swarm provides native clustering functionality for Docker containers, which turns a group of Docker engines into a single virtual Docker engine. In Docker 1.12 and higher, Swarm mode is integrated with Docker Engine. The docker swarm CLI utility allows users to run Swarm containers, create discovery tokens, list nodes in the cluster, and more. The docker node CLI utility allows users to run various commands to manage nodes in a swarm, for example, listing the nodes in a swarm, updating nodes, and removing nodes from the swarm. Docker manages swarms using the Raft consensus algorithm. According to Raft, for an update to be performed, the majority of Swarm nodes need to agree on the update.
+Docker Volume facilitates the independent persistence of data, allowing data to remain even after the container is deleted or re-created.
+
+
+== History ==
+dotCloud Inc. was founded by Kamel Founadi, Solomon Hykes, and Sebastien Pahl during the Y Combinator Summer 2010 startup incubator group and launched in 2011, and renamed to Docker Inc in 2013. The startup was also one of the 12 startups in Founder's Den first cohort. Hykes started the Docker project in France as an internal project within dotCloud, a platform-as-a-service company.
+Docker debuted to the public in Santa Clara at PyCon in 2013. It was released as open-source in March 2013. At the time, it used LXC as its default execution environment. One year later, with the release of version 0.9, Docker replaced LXC with its own component, libcontainer, which was written in the Go programming language.
+In 2017, Docker created the Moby project for open research and development.
+
+
+=== Adoption ===
+September 19, 2013: Red Hat and Docker announced a collaboration around Fedora, Red Hat Enterprise Linux (RHEL), and OpenShift.
+October 15, 2014: Microsoft announced the integration of the Docker engine into Windows Server, as well as native support for the Docker client role in Windows.
+November 2014: Docker container services were announced for the Amazon Elastic Compute Cloud (EC2).
+November 10, 2014: Docker announced a partnership with Stratoscale.
+December 4, 2014: IBM announced a strategic partnership with Docker that enables Docker to integrate more closely with the IBM Cloud.
+June 22, 2015: Docker and several other companies announced that they were working on a new vendor and operating-system-independent standard for software containers.
+December 2015: Oracle Cloud added Docker container support after acquiring StackEngine, a Docker container startup.
+April 2016: Windocks, an independent software vendor released a port of Docker's open source project to Windows, supporting Windows Server 2012 R2 and Server 2016, with all editions of SQL Server 2008 onward.
+May 2016: analysis showed the following organizations as main contributors to Docker: The Docker team, Cisco, Google, Huawei, IBM, Microsoft, and Red Hat.
+June 8, 2016: Microsoft announced that Docker could now be used natively on Windows 10.
+January 2017: An analysis of LinkedIn profile mentions showed Docker presence grew by 160% in 2016.
+May 6, 2019: Microsoft announced the second version of Windows Subsystem for Linux (WSL). Docker, Inc. announced that it had started working on a version of Docker for Windows to run on WSL 2. In particular, this meant Docker could run on Windows 10 Home (previously it was limited to Windows Pro and Enterprise since it used Hyper-V).
+August 2020: Microsoft announced a backport of WSL2 to Windows 10 versions 1903 and 1909 (previously WSL2 was available only on version 2004) and Docker developers announced availability of Docker for these platforms.
+August 2021: Docker Desktop for Windows and MacOS was no longer available free of charge for enterprise users. Docker ended free Docker Desktop use for larger business customers and replaced its Free Plan with a Personal Plan. Docker on Linux distributions remained unaffected.
+December 2023: Docker acquired AtomicJar to expand its testing capabilities.
+
+
+== See also ==
+
+DevOps
+DevOps toolchain
+gVisor
+Kubernetes
+List of Linux containers
+Microservices
+OS-level virtualization
+Podman
+Service Component Architecture
+Singularity – Docker alternative for HPC clusters
+Open Container Initiative
+
+
+== References ==
+
+
+== External links ==
+Official website 
+Container Terminology - Practical terminology
