@@ -35,7 +35,12 @@ def print_json_message(json_str):
             print_summary(dict_obj["summary"])
             return
     else:
-        print(f"{dict_obj['mode']}: {dict_obj['message']}")
+        print(f"Mode: {dict_obj['mode']}")
+        try:
+            print(json.dumps(dict_obj["message"], indent=4).replace("\\"*3, "\\"))
+        except:
+            print(dict_obj["message"])
+    
         return
 
 async def listen_for_messages(websocket):
@@ -43,29 +48,66 @@ async def listen_for_messages(websocket):
         message = await websocket.recv()
         print_json_message(message)
 
+async def close_and_exit(websocket):
+    await websocket.close()
+    exit()
+
 async def send_messages(websocket):
     await asyncio.sleep(1)
-    print("Enter a command: ")
     while True:
-        message = await aioconsole.ainput()
-        if message == "quit":
-            await websocket.close()
-            break
+        print("Enter a command: ")
+        user_command = await aioconsole.ainput()
         print()
-        # Message needs to be formatted as JSON
-        # some examples:
-        """
-        {"func": "chat", "message": "Hello"}
-        {"func": "get_current_configuration"}
-        {"func": "get_configuration_options", "field": "character"}
-        {"func": "configure", "selected_character": "Sherlock-Holmes"}
-        {"func": "summmarize", "file_path": "path/to/file"}
-        {"func": "summmarize", "file_index": "1"}
-        {"func": "options", "message": "options"}
-        {"func": "quit"}
-        """
-        message_object = {"func": "chat", "message": message}
-        await websocket.send(json.dumps(message_object)) 
+        user_command = user_command.lower().strip()
+        if user_command == "quit":
+            close_and_exit(websocket)
+        elif user_command == "chat":
+            # Streaming chat loop
+            while True:
+                message = await aioconsole.ainput()
+                if message == "exit":
+                    break
+                elif message == "quit":
+                    close_and_exit(websocket)
+                print()
+                # Message needs to be formatted as JSON
+                # some examples:
+                """
+                {"func": "chat", "message": "Hello"}
+                {"func": "get_current_configuration"}
+                {"func": "get_configuration_options", "field": "character"}
+                {"func": "configure", "selected_character": "Sherlock-Holmes"}
+                {"func": "summmarize", "file_path": "path/to/file"}
+                {"func": "summmarize", "file_index": "1"}
+                {"func": "options", "message": "options"}
+                {"func": "quit"}
+                """
+                message_object = {"func": "chat", "message": message}
+                await websocket.send(json.dumps(message_object)) 
+        elif 'help' == user_command:
+            message_object = {"func": "help"}
+            await websocket.send(json.dumps(message_object))
+        elif 'list' in user_command:
+            message_object = {"func": "list", "path": "sample_data/"}
+            await websocket.send(json.dumps(message_object))
+        elif 'summarize' in user_command:
+            command_list = user_command.split(" ")
+            if len(command_list) == 1:
+                file_index = await aioconsole.ainput("Enter the file index: ")
+                file_index = file_index.strip()
+                if file_index == "quit": close_and_exit(websocket)
+                if file_index == "exit": break
+                if not file_index.isdigit():
+                    print("File index must be a digit.")
+                    continue
+                else:
+                    command_list.append(file_index)
+
+            message_object = {"func": "summarize", "file_index": str(command_list[1])}
+            await websocket.send(json.dumps(message_object))
+        else:
+            message_object = {"func": user_command}
+            await websocket.send(json.dumps(message_object))
 
 async def create_websocket_connection():
     uri = f"ws://{config['hostname']}:{config['port']}/ws"  

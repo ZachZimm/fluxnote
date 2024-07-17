@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from langchain_openai import ChatOpenAI
@@ -13,6 +14,7 @@ from models.Summary import Summary, Idea
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
 # once I start using something that needs to be secret, anyways
 class langchain_interface():
+    userid = "-1"
     chat_character = "Sherlock-Holmes"
     config_path = "src/config.json"
     secret_config_path = "src/secret_config.json"
@@ -27,7 +29,8 @@ class langchain_interface():
     chain = None
 
 
-    def __init__(self):
+    def __init__(self, userid: str = ""):
+        self.userid = userid
         self.config_json = read_config(self.config_path)
         self.secret_config_json = read_config(self.secret_config_path)
         self.system_prompts = read_config(self.system_prompts_path)
@@ -41,7 +44,21 @@ class langchain_interface():
     
     def get_history(self, userid: str = "") -> list:
         # userid will be used to get the history of a specific user
+        # userid may not be nessecary because the whole langchain_interface will be instantiated with a userid
         return self.history
+    
+    def get_config_str(self, _indent: int = 4) -> str:
+        return json.dumps(self.config_json, indent=_indent)
+    
+    def get_config(self) -> dict:
+        return self.config_json 
+    
+    def get_secret_config_str(self, _indent: int = 4) -> str:
+        return json.dumps(self.secret_config_json, indent=_indent)
+
+    def get_secret_config(self) -> dict:
+        return self.secret_config_json
+
 
     # def stream_langchain_chat_loop(self, history: list = []) -> list:
     #     history.append(SystemMessage(content=self.system_prompts[self.chat_character]))

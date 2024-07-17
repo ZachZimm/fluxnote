@@ -11,7 +11,7 @@ loop = asyncio.new_event_loop()
 welcome_message = "Enter 'options' to see available text files to summarize or 'exit' to quit."
 
 # Define your functions here
-async def chat(websocket, lc_interface, message):
+async def chat(websocket, lc_interface, message, help=False):
     # Implement your chat function logic here
     # await send_ws_message(websocket, "Enter 'exit' to quit chat.", mode="chat")
     # while True:
@@ -25,36 +25,70 @@ async def chat(websocket, lc_interface, message):
     async for chunk in generator:
         assistant_message += chunk
         await send_ws_message(websocket, chunk, mode="chat streaming")
-    await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
+    # await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
 
     history = lc_interface.append_history(assistant_message, history, is_human = False)
     print(assistant_message)
-    return "",""
+    return "<stream_finished>", "chat streaming finished"
 
 
-def get_current_configuration(websocket, lc_interface):
+def get_current_configuration(websocket, lc_interface, help=False):
     # Implement your get_current_configuration logic here
-    return "Current configuration details."
+    config_str = lc_interface.get_config_str()
+    return config_str, "status"
 
-def get_configuration_options(websocket, lc_interface, field):
+def get_configuration_options(websocket, lc_interface, field, help=False):
     # Implement your get_configuration_options logic here
     return f"Configuration options for field: {field}"
 
-def configure(websocket, lc_interface, selected_character):
+def configure(websocket, lc_interface, select_character, help=False):
     # Implement your configure logic here
-    return f"Configured character: {selected_character}"
+    return f"Configured character: {select_character}"
 
-def summarize(file_path=None, file_index=None):
-    # Implement your summarize logic here
-    return f"Summarize called with file_path: {file_path}, file_index: {file_index}"
+async def summarize(websocket, lc_interface, file_path="sample_data/", file_index=None, help=False):
+    available_files = []
+    file_path = file_path.strip().replace("..", "")
+    path_is_file: bool = os.path.isfile(file_path)
 
-def get_available_files(websocket, lc_interface, path):
+    # Build a file path for the file to be summarized
+    if path_is_file: 
+        file_index = None
+    elif file_index is not None:
+        available_files, _ = get_available_files(websocket, lc_interface, file_path)
+        file_path = available_files[int(file_index) - 1]
+
+    if not os.path.exists(file_path):
+        return "File not found.", "summary error"
+
+    with open(file_path, "r") as file:
+        text = file.read()
+    
+    await send_ws_message(websocket, "Summarizing text from " + file_path.split('\\')[-1], mode="status")
+
+    history = lc_interface.get_history()
+    history, summary = await lc_interface.langchain_summarize_text_async(text, history)
+    summary_string = json.dumps(summary.model_dump())
+    history = lc_interface.append_history(summary_string, history, is_human = False)
+    if summary:
+        return summary_string, "summary"
+        # await send_ws_message(websocket, summary_string, mode="summary")
+    else:
+        return "Error summarizing text.", "summary error"
+        # await send_ws_message(websocket, "Error summarizing text.", mode="summary error")
+    # return f"Summarize called with file_path: {file_path}, file_index: {file_index}", "summarize"
+
+def get_available_files(websocket, lc_interface, path, help = False):
     files_in_dir = os.listdir(path)
     available_files = [f"{path}/{file}" for file in files_in_dir if file.endswith(".txt")]
-    return available_files
+    return available_files, "status"
 
-def get_available_functions(websocket, lc_interface):
-    return list(available_request_functions.keys())
+def get_functions(websocket, lc_interface, help=False):
+    return json.dumps(list(available_request_functions.keys())), "status"
+
+def get_help(websocket, lc_interface, help=False):
+    help_message = "Available functions:\n"
+    help_message += json.dumps(get_functions(websocket, lc_interface, help=True)[0])
+    return help_message, "help"
 
 # Dictionary to map function names to functions
 available_request_functions = {
@@ -63,7 +97,8 @@ available_request_functions = {
     "get_configuration_options": get_configuration_options,
     "configure": configure,
     "summarize": summarize,
-    "options": get_available_functions,
+    "options": get_functions,
+    "help": get_help,
     "list": get_available_files,
 
 }
@@ -75,7 +110,8 @@ async def send_ws_message(websocket: WebSocket, message: str, mode: str = "defau
 async def websocket_endpoint(websocket: WebSocket): 
     await websocket.accept()
     await send_ws_message(websocket, welcome_message, mode="welcome")
-    lc_interface = langchain_interface()
+    userid = "test_user"
+    lc_interface = langchain_interface(userid)
     wiki_results = []
     history = []
     wiki = WikiInterface()
@@ -105,12 +141,13 @@ async def websocket_endpoint(websocket: WebSocket):
         # Call the function with the provided arguments
         func = available_request_functions[func_name]
         kwargs = {k: v for k, v in data.items() if k != "func"}
-        if func_name == "chat":
+        async_functions = ["chat", "summarize"]
+        if func_name in async_functions:
             response_message, response_mode = await func(websocket, lc_interface, **kwargs)
-
         else:
             response_message, response_mode = func(websocket, lc_interface, **kwargs)
-            await send_ws_message(websocket, response_message, mode=response_mode)
+
+        await send_ws_message(websocket, response_message, mode=response_mode)
 
         
 
