@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import json
+import aioconsole
 
 config_dir = "config.json"
 config = json.load(open(config_dir))
@@ -20,6 +21,9 @@ def print_json_message(json_str):
         print(f"Chat: {dict_obj['message']}")
         return
     elif 'streaming' in dict_obj["mode"]:
+        if 'finished' in dict_obj["mode"]:
+            print("\n\n> ", end="")
+            return
         print(dict_obj["message"], end="", flush=True)
         return
     elif "summary" in dict_obj["mode"]:
@@ -34,24 +38,42 @@ def print_json_message(json_str):
         print(f"{dict_obj['mode']}: {dict_obj['message']}")
         return
 
-async def websocket_client():
-    uri = f"ws://{config['hostname']}:{config['port']}/ws"  # Adjust the URI as needed
+async def listen_for_messages(websocket):
+    while True:
+        message = await websocket.recv()
+        print_json_message(message)
+
+async def send_messages(websocket):
+    await asyncio.sleep(1)
+    print("Enter a command: ")
+    while True:
+        message = await aioconsole.ainput()
+        if message == "quit":
+            await websocket.close()
+            break
+        print()
+        # Message needs to be formatted as JSON
+        # some examples:
+        """
+        {"mode": "chat", "message": "Hello"}
+        {"mode": "get_current_configuration"}
+        {"mode": "get_configuration_options", "field": "character"}
+        {"mode": "configure", "selected_character": "Sherlock-Holmes"}
+        {"mode": "summmarize", "file_path": "path/to/file"}
+        {"mode": "summmarize", "file_index": "1"}
+        {"mode": "options", "message": "options"}
+        """
+        await websocket.send(message) 
+
+async def create_websocket_connection():
+    uri = f"ws://{config['hostname']}:{config['port']}/ws"  
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
-        
-        while True:
-            message = await websocket.recv()
-            message_dict = json.loads(message)
+        try:
+            await asyncio.gather(listen_for_messages(websocket), send_messages(websocket))
+        except websockets.exceptions.ConnectionClosedOK:
+            print('-'*18)
+            print("Connection closed.")
 
-            if ('streaming' not in message_dict["mode"]) or ('finished' in message_dict["mode"]):
-                if 'finished' in message_dict["mode"]:
-                    print()
-                else: print_json_message(message)
-                user_input = input("> ")
-                await websocket.send(user_input)
-                print()
-
-            else:
-                print_json_message(message)
-
-asyncio.get_event_loop().run_until_complete(websocket_client())
+if __name__ == "__main__":
+    asyncio.get_event_loop().run_until_complete(create_websocket_connection())
