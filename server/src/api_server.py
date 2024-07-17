@@ -4,19 +4,120 @@ from langchain_interface import langchain_interface
 from wiki_interface import WikiInterface
 import os
 import json
-import threading
 import asyncio
 
 app = FastAPI()
 loop = asyncio.new_event_loop()
 welcome_message = "Enter 'options' to see available text files to summarize or 'exit' to quit."
 
+# Define your functions here
+async def chat(websocket, lc_interface, message):
+    # Implement your chat function logic here
+    # await send_ws_message(websocket, "Enter 'exit' to quit chat.", mode="chat")
+    # while True:
+    user_message = message.strip()
+    history = lc_interface.get_history()
+    history = lc_interface.append_history(user_message, history, is_human = True) 
+    print("User message:", user_message)
+    print("History:", history)
+    generator = await lc_interface.stream_langchain_chat_loop_async_generator(history)
+    assistant_message = ""
+    async for chunk in generator:
+        assistant_message += chunk
+        await send_ws_message(websocket, chunk, mode="chat streaming")
+    await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
+
+    history = lc_interface.append_history(assistant_message, history, is_human = False)
+    print(assistant_message)
+    return "",""
+
+
+def get_current_configuration(websocket, lc_interface):
+    # Implement your get_current_configuration logic here
+    return "Current configuration details."
+
+def get_configuration_options(websocket, lc_interface, field):
+    # Implement your get_configuration_options logic here
+    return f"Configuration options for field: {field}"
+
+def configure(websocket, lc_interface, selected_character):
+    # Implement your configure logic here
+    return f"Configured character: {selected_character}"
+
+def summarize(file_path=None, file_index=None):
+    # Implement your summarize logic here
+    return f"Summarize called with file_path: {file_path}, file_index: {file_index}"
+
+def get_available_files(websocket, lc_interface, path):
+    files_in_dir = os.listdir(path)
+    available_files = [f"{path}/{file}" for file in files_in_dir if file.endswith(".txt")]
+    return available_files
+
+def get_available_functions(websocket, lc_interface):
+    return list(available_request_functions.keys())
+
+# Dictionary to map function names to functions
+available_request_functions = {
+    "chat": chat,
+    "get_current_configuration": get_current_configuration,
+    "get_configuration_options": get_configuration_options,
+    "configure": configure,
+    "summarize": summarize,
+    "options": get_available_functions,
+    "list": get_available_files,
+
+}
 
 async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default"):
     await websocket.send_json({"message": message, "mode": mode})
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
+async def websocket_endpoint(websocket: WebSocket): 
+    await websocket.accept()
+    await send_ws_message(websocket, welcome_message, mode="welcome")
+    lc_interface = langchain_interface()
+    wiki_results = []
+    history = []
+    wiki = WikiInterface()
+    files_in_dir = os.listdir("sample_data")
+    available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
+    while True:
+        data = await websocket.receive_json()
+        """
+        {"func": "chat", "message": "Hello"}
+        {"func": "get_current_configuration"}
+        {"func": "get_configuration_options", "field": "character"}
+        {"func": "configure", "selected_character": "Sherlock-Holmes"}
+        {"func": "summmarize", "file_path": "path/to/file"}
+        {"func": "summmarize", "file_index": "1"}
+        {"func": "options", "message": "options"}
+        """
+        if data["func"] == "quit":
+            # I don't think I need to do this if the client closes the connection
+            # websocket.close()
+            break
+
+        func_name = data.get("func")
+        if func_name not in available_request_functions:
+            await send_ws_message(websocket, "Invalid function request.", mode="status")
+            continue
+
+        # Call the function with the provided arguments
+        func = available_request_functions[func_name]
+        kwargs = {k: v for k, v in data.items() if k != "func"}
+        if func_name == "chat":
+            response_message, response_mode = await func(websocket, lc_interface, **kwargs)
+
+        else:
+            response_message, response_mode = func(websocket, lc_interface, **kwargs)
+            await send_ws_message(websocket, response_message, mode=response_mode)
+
+        
+
+    
+
+@app.websocket("/ws_old")
+async def websocket_endpoint_old(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
     await websocket.accept()
     await send_ws_message(websocket, welcome_message, mode="welcome")
     lc_interface = langchain_interface()

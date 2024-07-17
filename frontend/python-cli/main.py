@@ -55,15 +55,17 @@ async def send_messages(websocket):
         # Message needs to be formatted as JSON
         # some examples:
         """
-        {"mode": "chat", "message": "Hello"}
-        {"mode": "get_current_configuration"}
-        {"mode": "get_configuration_options", "field": "character"}
-        {"mode": "configure", "selected_character": "Sherlock-Holmes"}
-        {"mode": "summmarize", "file_path": "path/to/file"}
-        {"mode": "summmarize", "file_index": "1"}
-        {"mode": "options", "message": "options"}
+        {"func": "chat", "message": "Hello"}
+        {"func": "get_current_configuration"}
+        {"func": "get_configuration_options", "field": "character"}
+        {"func": "configure", "selected_character": "Sherlock-Holmes"}
+        {"func": "summmarize", "file_path": "path/to/file"}
+        {"func": "summmarize", "file_index": "1"}
+        {"func": "options", "message": "options"}
+        {"func": "quit"}
         """
-        await websocket.send(message) 
+        message_object = {"func": "chat", "message": message}
+        await websocket.send(json.dumps(message_object)) 
 
 async def create_websocket_connection():
     uri = f"ws://{config['hostname']}:{config['port']}/ws"  

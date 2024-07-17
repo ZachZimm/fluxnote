@@ -38,6 +38,10 @@ class langchain_interface():
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))
         return history
+    
+    def get_history(self, userid: str = "") -> list:
+        # userid will be used to get the history of a specific user
+        return self.history
 
     # def stream_langchain_chat_loop(self, history: list = []) -> list:
     #     history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
