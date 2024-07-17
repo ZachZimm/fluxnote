@@ -4,6 +4,13 @@
 ## Overview
 This document outlines the development plan for the Minimum Viable Product (MVP) of an AI-powered note-taking application. The focus is on backend development and basic AI features, with a later integration of a user interface.
 
+## Important notes:
+- This repository has further `README.md` files under the subdirectories `server/` `frontend/` and `frontend/python-cli/`
+- This project is pretty far from what it sets out to do, the current implementation is pretty bare bones
+- The default configuration expects an openai compatible server (something like lm_studio or oobabooga/text-generation-webui. There are many options.) to be running on `http://localhost:5000/v1`
+  - There will be more LLM provider options in the future
+- To simply use the OpenAI API, put your OpenAI API key in `secret_config.json` and set `use_openai` to `true` in `config.json`
+
 ## Philosophy
 When trying to use and gain advantage from note taking in the past, I have always struggled with the disconnect of the rigid separation and hierarchy of ideas on the page from the goal ultimate of an intricate and deep understanding of the interrelation of ideas. As such I have often opted not to take any notes at all as I have become accustomed to learning by listening.
 

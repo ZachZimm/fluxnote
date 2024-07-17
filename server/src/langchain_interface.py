@@ -35,7 +35,10 @@ class langchain_interface():
         self.secret_config_json = read_config(self.secret_config_path)
         self.system_prompts = read_config(self.system_prompts_path)
         os.environ["OPENAI_API_KEY"] = self.secret_config_json['openai_api_key']
-        self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
+        if self.config_json['use_openai']:
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'])
+        else:
+            self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
         self.url = f"{self.config_json['llm_base_url']}/v1/chat/completions"
 
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
@@ -46,8 +49,6 @@ class langchain_interface():
         self.history = []
     
     def get_history(self, userid: str = "") -> list:
-        # userid will be used to get the history of a specific user
-        # userid may not be nessecary because the whole langchain_interface will be instantiated with a userid
         return self.history
     
     def get_history_str(self, _indent: int = 4) -> str:
@@ -66,10 +67,13 @@ class langchain_interface():
         return self.config_json 
     
     def get_secret_config_str(self, _indent: int = 4) -> str:
-        return json.dumps(self.secret_config_json, indent=_indent)
+        # return json.dumps(self.secret_config_json, indent=_indent)
+        # This is probably not a good idea
+        return "Disabled for security"
 
     def get_secret_config(self) -> dict:
-        return self.secret_config_json
+        # return self.secret_config_json
+        return "Disabled for security"
 
 
     # def stream_langchain_chat_loop(self, history: list = []) -> list:

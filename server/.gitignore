@@ -6,3 +6,4 @@ venv/
 *.pyd
 
 history.txt
+src/secret_config.json
