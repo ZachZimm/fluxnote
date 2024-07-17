@@ -15,7 +15,7 @@ def print_summary(summary):
         print(f"{idea}: {summary[idea]['idea']}")
         i += 1
 
-def print_json_message(json_str):
+def print_json_message(json_str) -> None:
     dict_obj = json.loads(json_str)
     if dict_obj["mode"] == "chat":
         print(f"Chat: {dict_obj['message']}")
@@ -39,22 +39,27 @@ def print_json_message(json_str):
         try:
             print(json.dumps(dict_obj["message"], indent=4).replace("\\"*3, "\\"))
         except:
+            print("Error: Could not parse json.")
             print(dict_obj["message"])
     
         return
 
-async def listen_for_messages(websocket):
+async def listen_for_messages(websocket) -> None:
     while True:
         message = await websocket.recv()
         print_json_message(message)
 
-async def close_and_exit(websocket):
+async def close_and_exit(websocket) -> None:
+    await websocket.send(json.dumps({"func": "quit"}))
     await websocket.close()
     exit()
 
-async def send_messages(websocket):
-    await asyncio.sleep(1)
+# This function is used to send messages to the server
+# I think it should be in a seperate file and further refactored
+async def send_messages(websocket) -> None: # consider checking for success and returning a boolean
     while True:
+        message_object = {}
+        should_continue = False
         print("Enter a command: ")
         user_command = await aioconsole.ainput()
         print()
@@ -66,6 +71,7 @@ async def send_messages(websocket):
             while True:
                 message = await aioconsole.ainput()
                 if message == "exit":
+                    should_continue = True
                     break
                 elif message == "quit":
                     close_and_exit(websocket)
@@ -82,14 +88,16 @@ async def send_messages(websocket):
                 {"func": "options", "message": "options"}
                 {"func": "quit"}
                 """
-                message_object = {"func": "chat", "message": message}
-                await websocket.send(json.dumps(message_object)) 
+                message_object['func'] = "chat"
+                message_object['message'] = message
+                await websocket.send(json.dumps(message_object))
+
         elif 'help' == user_command:
-            message_object = {"func": "help"}
-            await websocket.send(json.dumps(message_object))
+            message_object['func'] = "help"
+
         elif 'list' in user_command:
-            message_object = {"func": "list", "path": "sample_data/"}
-            await websocket.send(json.dumps(message_object))
+            message_object['func'] = "list"
+            message_object['path'] = "sample_data/"
         elif 'summarize' in user_command:
             command_list = user_command.split(" ")
             if len(command_list) == 1:
@@ -103,13 +111,18 @@ async def send_messages(websocket):
                 else:
                     command_list.append(file_index)
 
-            message_object = {"func": "summarize", "file_index": str(command_list[1])}
-            await websocket.send(json.dumps(message_object))
+            message_object['func'] = "summarize"
+            message_object['file_index'] = str(command_list[1])
         else:
             message_object = {"func": user_command}
-            await websocket.send(json.dumps(message_object))
+        
+        if 'help' in user_command:
+            message_object['help'] = True
+        
+        if should_continue: continue
+        else: await websocket.send(json.dumps(message_object))
 
-async def create_websocket_connection():
+async def create_websocket_connection() -> None:
     uri = f"ws://{config['hostname']}:{config['port']}/ws"  
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")

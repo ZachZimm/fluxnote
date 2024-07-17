@@ -10,16 +10,15 @@ app = FastAPI()
 loop = asyncio.new_event_loop()
 welcome_message = "Enter 'options' to see available text files to summarize or 'exit' to quit."
 
-# Define your functions here
+# TODO break these all out into a separate file
+
 async def chat(websocket, lc_interface, message, help=False):
-    # Implement your chat function logic here
-    # await send_ws_message(websocket, "Enter 'exit' to quit chat.", mode="chat")
-    # while True:
+    if help == True:
+        return "Chat with the LLM, using your configured character. Information from summaries can be loaded into history for the LLM's reference but the way of doing that is in development. Currently it involves creating a summary then initiating a chat session. Chat history is currently deleted on disconnection, though that is likely to change.", "help"
     user_message = message.strip()
     history = lc_interface.get_history()
     history = lc_interface.append_history(user_message, history, is_human = True) 
     print("User message:", user_message)
-    print("History:", history)
     generator = await lc_interface.stream_langchain_chat_loop_async_generator(history)
     assistant_message = ""
     async for chunk in generator:
@@ -31,21 +30,51 @@ async def chat(websocket, lc_interface, message, help=False):
     print(assistant_message)
     return "<stream_finished>", "chat streaming finished"
 
+def get_chat_history(websocket, lc_interface, help=False):
+    if help == True:
+        return "Get the chat history.", "help"
+    history = lc_interface.get_history_str()
+    return history, "status"
 
-def get_current_configuration(websocket, lc_interface, help=False):
-    # Implement your get_current_configuration logic here
+def clear_chat_history(websocket, lc_interface, help=False):
+    if help == True:
+        return "Clear the chat history.", "help"
+    lc_interface.clear_history()
+    return "Chat history cleared.", "status"
+
+def get_configuration(websocket, lc_interface, help=False):
+    if help == True:
+        return "Get the configuration options.", "help"
     config_str = lc_interface.get_config_str()
     return config_str, "status"
 
+def get_secret_configuration(websocket, lc_interface, help=False):
+    if help == True:
+        return "Get the secret configuration options.", "help"
+    secret_config_str = lc_interface.get_secret_config_str()
+    return secret_config_str, "status"
+
+def set_secret_configuration(websocket, lc_interface, help=False):
+    if help == True:
+        return "Set the secret configuration options based on arguments passed in.", "help"
+    # This function will be used to set secret config options that are passed in
+    return f"Secret configuration set"
+
 def get_configuration_options(websocket, lc_interface, field, help=False):
+    if help == True:
+        return "Get all possible configuration fields.", "help"
     # Implement your get_configuration_options logic here
     return f"Configuration options for field: {field}"
 
-def configure(websocket, lc_interface, select_character, help=False):
-    # Implement your configure logic here
+def set_configuration(websocket, lc_interface, select_character=None, help=False):
+    if help == True:
+        return "Set the configuration options based on arguments passed in. Use get_configuration_options to see the availible configuration fields.", "help"
+    # This function will be used to set config options that are passed in
     return f"Configured character: {select_character}"
 
-async def summarize(websocket, lc_interface, file_path="sample_data/", file_index=None, help=False):
+async def summarize(websocket, lc_interface, file_path: str="sample_data/", file_index:str=None, help:bool=False):
+    if help == True:
+        return "Summarize text from a specified file. Either a directory with an index or a full file path can be passed in. Relative paths are not allowed.", "help"
     available_files = []
     file_path = file_path.strip().replace("..", "")
     path_is_file: bool = os.path.isfile(file_path)
@@ -53,9 +82,11 @@ async def summarize(websocket, lc_interface, file_path="sample_data/", file_inde
     # Build a file path for the file to be summarized
     if path_is_file: 
         file_index = None
-    elif file_index is not None:
+    elif file_index is not None and file_index.isdigit():
         available_files, _ = get_available_files(websocket, lc_interface, file_path)
         file_path = available_files[int(file_index) - 1]
+    if file_index and not file_index.isdigit():
+        return "File index must be a digit.", "summary error"
 
     if not os.path.exists(file_path):
         return "File not found.", "summary error"
@@ -67,23 +98,43 @@ async def summarize(websocket, lc_interface, file_path="sample_data/", file_inde
 
     history = lc_interface.get_history()
     history, summary = await lc_interface.langchain_summarize_text_async(text, history)
+    summary_string = ""
+    try:
+        summary_string = json.dumps(summary.model_dump())
+    except:
+        # Try again
+        print("Error summarizing text, trying again.")
+        history, summary = await lc_interface.langchain_summarize_text_async(text, history)
+        try:
+            summary_string = json.dumps(summary.model_dump())
+        except:
+            print("Failed to summarize text.")
+            return "Error summarizing text.", "summary error"
     summary_string = json.dumps(summary.model_dump())
     history = lc_interface.append_history(summary_string, history, is_human = False)
     if summary:
         return summary_string, "summary"
-        # await send_ws_message(websocket, summary_string, mode="summary")
     else:
         return "Error summarizing text.", "summary error"
-        # await send_ws_message(websocket, "Error summarizing text.", mode="summary error")
-    # return f"Summarize called with file_path: {file_path}, file_index: {file_index}", "summarize"
 
 def get_available_files(websocket, lc_interface, path, help = False):
+    if help == True:
+        return "Get a list of available text files in the path passed in.", "help"
+    path = path.strip().replace("..", "")
     files_in_dir = os.listdir(path)
     available_files = [f"{path}/{file}" for file in files_in_dir if file.endswith(".txt")]
     return available_files, "status"
 
 def get_functions(websocket, lc_interface, help=False):
+    if help == True:
+        return "Get a list of available backend functions.", "help"
     return json.dumps(list(available_request_functions.keys())), "status"
+
+def end_session(websocket, lc_interface, help=False):
+    if help == True:
+        return "End the current session.", "help"
+    websocket.close()
+    return "Ending session.", "status"
 
 def get_help(websocket, lc_interface, help=False):
     help_message = "Available functions:\n"
@@ -93,18 +144,24 @@ def get_help(websocket, lc_interface, help=False):
 # Dictionary to map function names to functions
 available_request_functions = {
     "chat": chat,
-    "get_current_configuration": get_current_configuration,
+    "get_configuration": get_configuration,
     "get_configuration_options": get_configuration_options,
-    "configure": configure,
+    "get_secret_configuration": get_secret_configuration,
+    "configure": set_configuration,
     "summarize": summarize,
     "options": get_functions,
     "help": get_help,
     "list": get_available_files,
-
+    "chat_history": get_chat_history,
+    "clear_history": clear_chat_history,
+    "quit": end_session,
 }
+# End that seperate file
 
+# This could go in the utils file as well
 async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default"):
     await websocket.send_json({"message": message, "mode": mode})
+# End that seperate file
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket): 
@@ -113,7 +170,6 @@ async def websocket_endpoint(websocket: WebSocket):
     userid = "test_user"
     lc_interface = langchain_interface(userid)
     wiki_results = []
-    history = []
     wiki = WikiInterface()
     files_in_dir = os.listdir("sample_data")
     available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
@@ -130,7 +186,7 @@ async def websocket_endpoint(websocket: WebSocket):
         """
         if data["func"] == "quit":
             # I don't think I need to do this if the client closes the connection
-            # websocket.close()
+            websocket.close()
             break
 
         func_name = data.get("func")
@@ -149,11 +205,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         await send_ws_message(websocket, response_message, mode=response_mode)
 
-        
-
-    
-
-@app.websocket("/ws_old")
+@app.websocket("/ws_old") # This is all deprecated and being re-implemented above
 async def websocket_endpoint_old(websocket: WebSocket): # In order to scale, I imagine this all should be within a class that can be instantiated on connection
     await websocket.accept()
     await send_ws_message(websocket, welcome_message, mode="welcome")

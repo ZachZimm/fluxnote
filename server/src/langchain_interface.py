@@ -42,11 +42,23 @@ class langchain_interface():
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))
         return history
     
+    def clear_history(self) -> None:
+        self.history = []
+    
     def get_history(self, userid: str = "") -> list:
         # userid will be used to get the history of a specific user
         # userid may not be nessecary because the whole langchain_interface will be instantiated with a userid
         return self.history
     
+    def get_history_str(self, _indent: int = 4) -> str:
+        _history = []
+        for message in self.history:
+            history_message = {}
+            history_message['role'] = message.type
+            history_message['content'] = message.content
+            _history.append(history_message)
+        return json.dumps(_history, indent=_indent)
+ 
     def get_config_str(self, _indent: int = 4) -> str:
         return json.dumps(self.config_json, indent=_indent)
     
@@ -155,42 +167,38 @@ class langchain_interface():
         history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
         return history, summary_obj
 
-    def text_summary_loop(self, history: list = []) -> list: 
-        # This function is essentialy deprecated
-        print("1: sample_data/marcuscrassus.txt")
-        print("2: sample_data/juluiscaesar.txt")
-        print("3: sample_data/thaiculture.txt")
-        file_path = input("Provide the path to the text file you would like to summarize:  ")
-        if file_path == "exit":
-            exit()
-        elif file_path == "skip":
-            return history
-        elif file_path == "1":
-            file_path = "sample_data/marcuscrassus.txt"
-        elif file_path == "2":
-            file_path = "sample_data/juluiscaesar.txt"
-        elif file_path == "3":
-            file_path = "sample_data/thaiculture.txt"
-        elif file_path == "":
-            file_path = "../README.md"
-        print()
-        text = ""
-        if not os.path.exists(file_path):
-            print("File not found.")
-            return {"error": "File not found."}
+    # def text_summary_loop(self, history: list = []) -> list: 
+    #     # This function is essentialy deprecated
+    #     print("1: sample_data/marcuscrassus.txt")
+    #     print("2: sample_data/juluiscaesar.txt")
+    #     print("3: sample_data/thaiculture.txt")
+    #     file_path = input("Provide the path to the text file you would like to summarize:  ")
+    #     if file_path == "exit":
+    #         exit()
+    #     elif file_path == "skip":
+    #         return history
+    #     elif file_path == "1":
+    #         file_path = "sample_data/marcuscrassus.txt"
+    #     elif file_path == "2":
+    #         file_path = "sample_data/juluiscaesar.txt"
+    #     elif file_path == "3":
+    #         file_path = "sample_data/thaiculture.txt"
+    #     elif file_path == "":
+    #         file_path = "../README.md"
+    #     print()
+    #     text = ""
+    #     if not os.path.exists(file_path):
+    #         print("File not found.")
+    #         return {"error": "File not found."}
 
-        with open(file_path, "r") as file:
-            text = file.read()
+    #     with open(file_path, "r") as file:
+    #         text = file.read()
         
-        history, summary = self.langchain_summarize_text(text, history)
+    #     history, summary = self.langchain_summarize_text(text, history)
 
-        # once a little more infrastructure is in place, we can save the summaries to a database
-        # the database entries should include the user, the topic, the original text, the summary object, and the date
+    #     # once a little more infrastructure is in place, we can save the summaries to a database
+    #     # the database entries should include the user, the topic, the original text, the summary object, and the date
         
-        return history
+    #     return history
 
 
-# if __name__ == "__main__":
-#     langchain_i = langchain_interface()
-#     history = langchain_i.text_summary_loop()
-#     langchain_i.stream_langchain_chat_loop(history)
