@@ -110,8 +110,10 @@ class langchain_interface():
 
     async def stream_langchain_chat_loop_async_generator(self, history: list = []):
         history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
-        
-        self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
+        if self.config_json['use_openai']:
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=600, temperature=0.7)
+        else: 
+            self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
                                 api_key=self.secret_config_json['openai_api_key'],
                                 max_tokens=600,
                                 temperature=0.7
@@ -155,12 +157,14 @@ class langchain_interface():
         _history = history
         _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
-        
-        self.model = ChatOpenAI(
-            base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
-            max_tokens=1536,
-            temperature=0.5,
-            )
+        if self.config_json['use_openai']:
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=1536, temperature=0.5)
+        else: 
+            self.model = ChatOpenAI(
+                base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+                max_tokens=1536,
+                temperature=0.5,
+                )
         parser = StrOutputParser()
         chain = self.model | parser
         assistant_message = ''

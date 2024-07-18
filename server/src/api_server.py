@@ -29,7 +29,7 @@ async def chat(websocket, lc_interface, message, help=False):
     # await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
 
     history = lc_interface.append_history(assistant_message, history, is_human = False)
-    print(assistant_message)
+    # print(assistant_message)
     return "<stream_finished>", "chat streaming finished"
 
 def get_chat_history(websocket, lc_interface, help=False):
@@ -134,7 +134,13 @@ async def wiki_search(websocket, lc_interface, wiki, query, help=False):
 async def get_wiki_results(websocket, lc_interface, wiki, help=False):
     if help == True:
         return "Get the results of the last wiki search.", "help"
-    return json.dumps(wiki_results[lc_interface.userid]), "wiki search results"
+    global wiki_results
+    try:
+        _wiki_results = json.dumps(wiki_results[lc_interface.userid])
+        return _wiki_results, "wiki search results"
+    except KeyError:
+        return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
+
 
 async def wiki(websocket, lc_interface, wiki, query, should_save=False, help=False):
     if help == True:
@@ -233,12 +239,12 @@ async def websocket_endpoint(websocket: WebSocket):
             """
             if data["func"] == "quit":
                 # I don't think I need to do this if the client closes the connection
-                websocket.close()
+                await websocket.close()
                 break
 
             func_name = data.get("func")
             if func_name not in available_request_functions:
-                await send_ws_message(websocket, f"Invalid function request: {func_name}", mode="status")
+                await send_ws_message(websocket, f"Invalid function request: {func_name}", mode="error")
                 continue
 
             # Call the function with the provided arguments

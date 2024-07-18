@@ -80,7 +80,6 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                 elif message == "quit":
                     await close_and_exit(websocket)
                 print()
-                # Message needs to be formatted as JSON
                 # some examples:
                 """
                 {"func": "chat", "message": "Hello"}
@@ -149,6 +148,11 @@ async def create_websocket_connection() -> None:
             print("Connection closed.")
             print()
         except websockets.exceptions.ConnectionClosedError:
+            print('-'*18)
+            print("Connection closed.")
+            print()
+        except KeyboardInterrupt:
+            await websocket.close()
             print('-'*18)
             print("Connection closed.")
             print()
