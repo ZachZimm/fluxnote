@@ -95,9 +95,6 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         elif 'help' == user_command:
             message_object['func'] = "help"
 
-        elif 'list' in user_command:
-            message_object['func'] = "list"
-            message_object['path'] = "sample_data/"
         elif 'summarize' in user_command:
             command_list = user_command.split(" ")
             if len(command_list) == 1:

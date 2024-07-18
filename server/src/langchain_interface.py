@@ -19,6 +19,7 @@ class langchain_interface():
     config_path = "src/config.json"
     secret_config_path = "src/secret_config.json"
     system_prompts_path = "src/system_prompts.json"
+    notes_dir = "sample_data/"
     config_json = {}
     secret_config_json = {}
     system_prompts = {}
@@ -40,6 +41,13 @@ class langchain_interface():
         else:
             self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
         self.url = f"{self.config_json['llm_base_url']}/v1/chat/completions"
+        self.chat_character = self.config_json['chat_character'].replace(" ", "-")
+        self.notes_dir = self.config_json['notes_directory']
+        if self.notes_dir[-1] != "/":
+            self.notes_dir += "/"
+    
+    def get_notes_dir(self) -> str:
+        return self.notes_dir
 
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))

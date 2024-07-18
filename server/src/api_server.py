@@ -117,10 +117,13 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     else:
         return "Error summarizing text.", "summary error"
 
-def get_available_files(websocket, lc_interface, path, help = False):
+def get_available_files(websocket, lc_interface, help = False):
+    # This will not be a list of files in a path in the future, but a database query that returns a list of files associated with a user and their ids
+    # probably filterable as well
     if help == True:
         return "Get a list of available text files in the path passed in.", "help"
-    path = path.strip().replace("..", "")
+    path = lc_interface.get_notes_dir()
+    path = path.strip().replace("..", "") # Shouldn't be needed anymore
     files_in_dir = os.listdir(path)
     available_files = [f"{path}/{file}" for file in files_in_dir if file.endswith(".txt")]
     return available_files, "status"
@@ -138,6 +141,7 @@ def end_session(websocket, lc_interface, help=False):
 
 def get_help(websocket, lc_interface, help=False):
     help_message = "Available functions:\n"
+    help_message += "use any command followed by 'help' to get more information on that command.\n"
     help_message += json.dumps(get_functions(websocket, lc_interface, help=True)[0])
     return help_message, "help"
 
@@ -171,8 +175,6 @@ async def websocket_endpoint(websocket: WebSocket):
     lc_interface = langchain_interface(userid)
     wiki_results = []
     wiki = WikiInterface()
-    files_in_dir = os.listdir("sample_data")
-    available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
     while True:
         data = await websocket.receive_json()
         """
@@ -217,8 +219,8 @@ async def websocket_endpoint_old(websocket: WebSocket): # In order to scale, I i
     # this will be replaced with a database query
     # or just a filesystem lookup depending on the implementation
     # or user preferences
-    files_in_dir = os.listdir("sample_data")
-    available_files = [f"sample_data/{file}" for file in files_in_dir if file.endswith(".txt")]
+    files_in_dir = os.listdir(lc_interface.get_notes_dir())
+    available_files = [f"{lc_interface.get_notes_dir()}{file}" for file in files_in_dir if file.endswith(".txt")]
 
     while True: # This seems like a really poor way to handle this
                 # surely the different cases can at least be split into functions / files

@@ -2,5 +2,6 @@
     "use_openai": false,
     "llm_base_url": "http://100.77.107.36:5000",
     "llm_streaming_url": "http://100.77.107.36:5000",
-    "chat_character": "Sherlock Holmes"
+    "chat_character": "Sherlock-Holmes",
+    "notes_directory": "sample_data/"
 }
