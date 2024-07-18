@@ -54,9 +54,9 @@ async def listen_for_messages(websocket) -> None:
         print_json_message(message)
 
 async def close_and_exit(websocket) -> None:
-    await websocket.send(json.dumps({"func": "quit"}))
+    # await websocket.send(json.dumps({"func": "quit"}))
     await websocket.close()
-    exit()
+    # await websocket.close()
 
 # This function is used to send messages to the server
 # I think it should be in a seperate file and further refactored
@@ -69,7 +69,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         print()
         user_command = user_command.lower().strip()
         if user_command == "quit":
-            close_and_exit(websocket)
+            await close_and_exit(websocket)
         elif user_command == "chat":
             # Streaming chat loop
             while True:
@@ -78,7 +78,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                     should_continue = True
                     break
                 elif message == "quit":
-                    close_and_exit(websocket)
+                    await close_and_exit(websocket)
                 print()
                 # Message needs to be formatted as JSON
                 # some examples:
@@ -147,6 +147,11 @@ async def create_websocket_connection() -> None:
         except websockets.exceptions.ConnectionClosedOK:
             print('-'*18)
             print("Connection closed.")
+            print()
+        except websockets.exceptions.ConnectionClosedError:
+            print('-'*18)
+            print("Connection closed.")
+            print()
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(create_websocket_connection())

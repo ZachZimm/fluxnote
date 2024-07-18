@@ -1,3 +1,4 @@
+import starlette.websockets
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
@@ -176,7 +177,7 @@ def get_functions(websocket, lc_interface, help=False):
 def end_session(websocket, lc_interface, help=False):
     if help == True:
         return "End the current session.", "help"
-    websocket.close()
+    # await websocket.close()
     return "Ending session.", "status"
 
 def get_help(websocket, lc_interface, help=False):
@@ -213,45 +214,50 @@ async def send_ws_message(websocket: WebSocket, message: str, mode: str = "defau
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket): 
-    await websocket.accept()
-    await send_ws_message(websocket, welcome_message, mode="welcome")
-    userid = "test_user"
-    lc_interface = langchain_interface(userid)
-    wiki = WikiInterface()
-    while True:
-        data = await websocket.receive_json()
-        """
-        {"func": "chat", "message": "Hello"}
-        {"func": "get_current_configuration"}
-        {"func": "get_configuration_options", "field": "character"}
-        {"func": "configure", "selected_character": "Sherlock-Holmes"}
-        {"func": "summmarize", "file_path": "path/to/file"}
-        {"func": "summmarize", "file_index": "1"}
-        {"func": "options", "message": "options"}
-        """
-        if data["func"] == "quit":
-            # I don't think I need to do this if the client closes the connection
-            websocket.close()
-            break
+    try:
+        await websocket.accept()
+        await send_ws_message(websocket, welcome_message, mode="welcome")
+        userid = "test_user"
+        lc_interface = langchain_interface(userid)
+        wiki = WikiInterface()
+        while True:
+            data = await websocket.receive_json()
+            """
+            {"func": "chat", "message": "Hello"}
+            {"func": "get_current_configuration"}
+            {"func": "get_configuration_options", "field": "character"}
+            {"func": "configure", "selected_character": "Sherlock-Holmes"}
+            {"func": "summmarize", "file_path": "path/to/file"}
+            {"func": "summmarize", "file_index": "1"}
+            {"func": "options", "message": "options"}
+            """
+            if data["func"] == "quit":
+                # I don't think I need to do this if the client closes the connection
+                websocket.close()
+                break
 
-        func_name = data.get("func")
-        if func_name not in available_request_functions:
-            await send_ws_message(websocket, f"Invalid function request: {func_name}", mode="status")
-            continue
+            func_name = data.get("func")
+            if func_name not in available_request_functions:
+                await send_ws_message(websocket, f"Invalid function request: {func_name}", mode="status")
+                continue
 
-        # Call the function with the provided arguments
-        func = available_request_functions[func_name]
-        kwargs = {k: v for k, v in data.items() if k != "func"}
-        async_functions = ["chat", "summarize"]
-        wiki_functions = ["wiki_search", "wiki_results", "wiki"]
-        if func_name in async_functions:
-            response_message, response_mode = await func(websocket, lc_interface, **kwargs)
-        elif func_name in wiki_functions:
-            response_message, response_mode = await func(websocket, lc_interface, wiki, **kwargs)
-        else:
-            response_message, response_mode = func(websocket, lc_interface, **kwargs)
+            # Call the function with the provided arguments
+            func = available_request_functions[func_name]
+            kwargs = {k: v for k, v in data.items() if k != "func"}
+            async_functions = ["chat", "summarize"]
+            wiki_functions = ["wiki_search", "wiki_results", "wiki"]
+            if func_name in async_functions:
+                response_message, response_mode = await func(websocket, lc_interface, **kwargs)
+            elif func_name in wiki_functions:
+                response_message, response_mode = await func(websocket, lc_interface, wiki, **kwargs)
+            else:
+                response_message, response_mode = func(websocket, lc_interface, **kwargs)
 
-        await send_ws_message(websocket, response_message, mode=response_mode)
+            await send_ws_message(websocket, response_message, mode=response_mode)
+    except starlette.websockets.WebSocketDisconnect:
+        print("Websocket client disconnected.")
+        pass
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8090)
