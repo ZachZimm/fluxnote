@@ -34,6 +34,10 @@ def print_json_message(json_str) -> None:
             dict_obj = json.loads(dict_obj["message"])
             print_summary(dict_obj["summary"])
             return
+    elif "wiki search results" in dict_obj["mode"]:
+        list_obj = json.loads(dict_obj["message"])
+        for i in range(len(list_obj)):
+            print(f"{i+1}: {list_obj[i]}")
     else:
         print(f"Mode: {dict_obj['mode']}")
         try:
@@ -110,6 +114,21 @@ async def send_messages(websocket) -> None: # consider checking for success and 
 
             message_object['func'] = "summarize"
             message_object['file_index'] = str(command_list[1])
+        elif 'wiki s' in user_command:
+            message_object['func'] = "wiki_search"
+            user_command_list = user_command.split(" ")
+            if len(user_command_list) == 2:
+                message_object['query'] = await aioconsole.ainput("Enter your search query: ")
+            else:
+                message_object['query'] = user_command_list[2]
+        elif 'wiki r' in user_command:
+            message_object['func'] = "wiki_results"
+        elif 'wiki' in user_command:
+            should_save_string = await aioconsole.ainput("Save this wiki page? (y/n): ")
+            should_save = True if 'y' in should_save_string else False
+            message_object['func'] = "wiki"
+            message_object['query'] = user_command.split("wiki ")[1]
+            message_object['should_save'] = should_save
         else:
             message_object = {"func": user_command}
         
