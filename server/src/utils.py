@@ -35,6 +35,7 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
     result: Dict[str, Any] = {"error": False, "object": None}
     try:        
         llm_output = llm_output.replace('"', "'") # Replace all double quotes with single quotes and then replace them back later
+        llm_output = llm_output.replace("' }", '"}')
         llm_output = llm_output[llm_output.find('{'):llm_output.rfind('}')+1]
         # Extract the expected keys from the model
         

@@ -14,15 +14,21 @@ class TestWebSocketServer(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
         self.websocket_url = "/ws"
-
-    def test_get_configuration(self):
-        # Create an event loop for the test
+    
+    def tearDown(self) -> None:
+        asyncio.get_event_loop().close()
+    
+    def run_async_test(self, test_function):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        loop.run_until_complete(test_function())
+        loop.close()
 
+    def test_get_configuration(self):
         # Define the asynchronous test function
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_get_configuration")
                 data = websocket.receive_json() # Receive the welcome message
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "get_configuration"})
@@ -31,17 +37,13 @@ class TestWebSocketServer(unittest.TestCase):
                 websocket.close() # Close the connection
 
         # Run the asynchronous test function
-        loop.run_until_complete(async_test())
-        loop.close()
+        self.run_async_test(async_test)
 
     def test_get_secret_configuration(self):
-        # Create an event loop for the test
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         # Define the asynchronous test function
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_get_secret_configuration")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "get_secret_configuration"})
@@ -50,17 +52,13 @@ class TestWebSocketServer(unittest.TestCase):
                 websocket.close() 
 
         # Run the asynchronous test function
-        loop.run_until_complete(async_test())
-        loop.close()
+        self.run_async_test(async_test)
 
     def test_get_available_files_default_path(self):
-        # Create an event loop for the test
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         # Define the asynchronous test function
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_get_available_files_default_path")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "list"})
@@ -70,33 +68,35 @@ class TestWebSocketServer(unittest.TestCase):
                 websocket.close()
 
         # Run the asynchronous test function
-        loop.run_until_complete(async_test())
-        loop.close()
-    
-    def test_chat(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.run_async_test(async_test) 
 
+    def test_chat(self):
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_chat")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "chat", "message": "Hello"})
-                for i in range(5): # Make sure there are a few messages
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "chat streaming")
+                self.assertIsInstance(data['message'], str)
+                time_start = time.time()
+                while True:
                     data = websocket.receive_json()
-                    self.assertEqual(data['mode'], "chat streaming")
-                    self.assertIsInstance(data['message'], str)
+                    if data['mode'] == "chat streaming finished":
+                        break
+                    if time.time() - time_start > 45:
+                        print("Chat took too long to complete")
+                        self.fail("Chat took too long to complete")
+                        break
                 websocket.close()
 
-        loop.run_until_complete(async_test())
-        loop.close()
+        self.run_async_test(async_test)
     
     def test_get_and_clear_chat_history(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_get_and_clear_chat_history")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "chat", "message": "Hello"}) # Send a chat message
@@ -131,16 +131,12 @@ class TestWebSocketServer(unittest.TestCase):
                 self.assertTrue(len(data_json) == 0) # Check that the chat history is empty
                 websocket.close()
 
-
-        loop.run_until_complete(async_test())
-        loop.close()
-
+        self.run_async_test(async_test)
+        
     def test_summarize_text_default_path(self): # Unfortunatly, this is a long running test
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_summarize_text_default_path")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "summarize", "file_index": "1"})
@@ -152,15 +148,12 @@ class TestWebSocketServer(unittest.TestCase):
                 self.assertIsInstance(summary_dict, dict)
                 websocket.close()
 
-        loop.run_until_complete(async_test())
-        loop.close()
+        self.run_async_test(async_test)
 
-    def test_summarize_string(self): # Unfortunatly, this is a long running test
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
+    def test_summarize_by_path(self): # Unfortunatly, this is a long running test
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_summarize_by_path")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "summarize", "file_path": "sample_data/juluiscaesar.txt"})
@@ -172,15 +165,12 @@ class TestWebSocketServer(unittest.TestCase):
                 self.assertIsInstance(summary_dict, dict)
                 websocket.close()
 
-        loop.run_until_complete(async_test())
-        loop.close()
-    
-    def test_wiki_search(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.run_async_test(async_test)
 
+    def test_wiki_search(self):
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_wiki_search")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "wiki_search", "query": "Roman Republic"})
@@ -192,15 +182,12 @@ class TestWebSocketServer(unittest.TestCase):
                 self.assertTrue(len(wiki_results) > 0)
                 websocket.close()
 
-        loop.run_until_complete(async_test())
-        loop.close()
-    
-    def test_wiki_results(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.run_async_test(async_test)
 
+    def test_wiki_results(self):
         async def async_test():
             with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_wiki_results")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
                 websocket.send_json({"func": "wiki_search", "query": "Roman Republic"})
@@ -212,9 +199,34 @@ class TestWebSocketServer(unittest.TestCase):
                 self.assertIsInstance(wiki_results, list)
                 websocket.close()
 
-        loop.run_until_complete(async_test())
-        loop.close()
+        self.run_async_test(async_test)
+    
+    def test_wiki_get_page(self):
+        async def async_test():
+            with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_wiki_get_page")
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "welcome")
+                websocket.send_json({"func": "wiki_search", "query": "Roman Republic"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "wiki search results")
+                wiki_page = json.loads(data['message'])
+                self.assertIsInstance(wiki_page, list)
+                self.assertTrue(len(wiki_page) > 0)
+                websocket.send_json({"func": "wiki", "query": "1", "return_full": True, "should_save": False})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "wiki")
+                data_json = data['message']
+                self.assertIsInstance(data_json, dict)
+                self.assertTrue('title' in data_json.keys()) # Check that all of the expected keys are present
+                self.assertTrue('summary' in data_json.keys())
+                self.assertTrue('content' in data_json.keys())
+                # Check that the data conforms to our expectations
+                self.assertTrue(len(data_json['title']) < len(data_json['summary']))
+                self.assertTrue(len(data_json['summary']) < len(data_json['content']))
+                websocket.close()
 
+        self.run_async_test(async_test)
 
 if __name__ == "__main__":
     unittest.main()

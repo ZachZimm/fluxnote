@@ -112,7 +112,7 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
         except:
             print("Failed to summarize text.")
             return "Error summarizing text.", "summary error"
-    summary_string = json.dumps(summary.model_dump())
+    # summary_string = json.dumps(summary.model_dump())
     history = lc_interface.append_history(summary_string, history, is_human = False)
     if summary:
         return summary_string, "summary"
@@ -142,7 +142,7 @@ async def get_wiki_results(websocket, lc_interface, wiki, help=False):
         return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
 
 
-async def wiki(websocket, lc_interface, wiki, query, should_save=False, help=False):
+async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_full=False, help=False):
     if help == True:
         return "Get the content of a wiki page.", "help"
     if len(wiki_results[lc_interface.userid]) == 0:
@@ -155,6 +155,8 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, help=Fal
         "title": data.title,
         "summary": data.summary,
     }
+    if return_full:
+        return_object["content"] = data.content
 
     if should_save: # This should probably also save the summary in a separate file
         # This will also save to a database as soon as I integrate that 
