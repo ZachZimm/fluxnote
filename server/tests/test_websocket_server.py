@@ -156,7 +156,7 @@ class TestWebSocketServer(unittest.TestCase):
                 print("test_summarize_by_path")
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "welcome")
-                websocket.send_json({"func": "summarize", "file_path": "sample_data/juluiscaesar.txt"})
+                websocket.send_json({"func": "summarize", "file_path": "sample_data/marcuscrassus.txt"})
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "status") # Check for the 'summarizing' conffirmation
                 data = websocket.receive_json()
@@ -224,6 +224,49 @@ class TestWebSocketServer(unittest.TestCase):
                 # Check that the data conforms to our expectations
                 self.assertTrue(len(data_json['title']) < len(data_json['summary']))
                 self.assertTrue(len(data_json['summary']) < len(data_json['content']))
+                websocket.close()
+
+        self.run_async_test(async_test)
+    
+    def test_get_chat_characters(self):
+        async def async_test():
+            with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_get_chat_characters")
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "welcome")
+                websocket.send_json({"func": "get_chat_characters"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "characters")
+                chat_characters = json.loads(data['message'])
+                self.assertIsInstance(chat_characters, dict)
+                websocket.close()
+
+        self.run_async_test(async_test)
+    
+    def test_add_and_remove_chat_character(self):
+        async def async_test():
+            with self.client.websocket_connect(self.websocket_url) as websocket:
+                print("test_add_and_remove_chat_character")
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "welcome")
+                websocket.send_json({"func": "add_chat_character", "character_name": "Marcus Crassus", "character_prompt": "You are Marcus Crassus, a very wealthy Roman general and politician"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "status")
+                websocket.send_json({"func": "get_chat_characters"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "characters")
+                chat_characters = json.loads(data['message'])
+                self.assertIsInstance(chat_characters, dict)
+                self.assertTrue('Marcus Crassus' in chat_characters.keys())
+                websocket.send_json({"func": "remove_chat_character", "character_name": "Marcus Crassus"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "status")
+                websocket.send_json({"func": "get_chat_characters"})
+                data = websocket.receive_json()
+                self.assertEqual(data['mode'], "characters")
+                chat_characters = json.loads(data['message'])
+                self.assertIsInstance(chat_characters, dict)
+                self.assertTrue('Marcus Crassus' not in chat_characters.keys())
                 websocket.close()
 
         self.run_async_test(async_test)

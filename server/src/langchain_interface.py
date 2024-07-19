@@ -23,6 +23,7 @@ class langchain_interface():
     config_json = {}
     secret_config_json = {}
     system_prompts = {}
+    permanent_characters = []
     model = None
     headers = { "Content-Type": "application/json" }
     url = ""
@@ -35,6 +36,7 @@ class langchain_interface():
         self.config_json = read_config(self.config_path)
         self.secret_config_json = read_config(self.secret_config_path)
         self.system_prompts = read_config(self.system_prompts_path)
+        permanent_characters = self.system_prompts.keys()
         os.environ["OPENAI_API_KEY"] = self.secret_config_json['openai_api_key']
         if self.config_json['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'])
@@ -46,6 +48,22 @@ class langchain_interface():
         if self.notes_dir[-1] != "/":
             self.notes_dir += "/"
     
+    def add_chat_character(self, character_name: str, character_bio) -> None:
+        self.system_prompts[character_name] = character_bio
+    
+    def get_chat_characters(self) -> dict:
+        return self.system_prompts
+
+    def get_chat_characters_str(self) -> str:
+        return json.dumps(self.system_prompts)
+    
+    def remove_chat_character(self, character_name: str) -> bool:
+        if character_name not in self.permanent_characters:
+            if character_name in self.system_prompts.keys():
+                self.system_prompts.pop(character_name)
+                return True
+        return False
+
     def get_notes_dir(self) -> str:
         return self.notes_dir
 
@@ -73,6 +91,10 @@ class langchain_interface():
     
     def get_config(self) -> dict:
         return self.config_json 
+    
+    def update_config(self, new_config_key: str, new_config_value: str) -> bool:
+        self.config_json[new_config_key] = new_config_value
+        return True
     
     def get_secret_config_str(self, _indent: int = 4) -> str:
         # return json.dumps(self.secret_config_json, indent=_indent)

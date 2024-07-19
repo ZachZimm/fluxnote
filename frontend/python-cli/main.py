@@ -54,9 +54,7 @@ async def listen_for_messages(websocket) -> None:
         print_json_message(message)
 
 async def close_and_exit(websocket) -> None:
-    # await websocket.send(json.dumps({"func": "quit"}))
     await websocket.close()
-    # await websocket.close()
 
 # This function is used to send messages to the server
 # I think it should be in a seperate file and further refactored
@@ -70,6 +68,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         user_command = user_command.lower().strip()
         if user_command == "quit":
             await close_and_exit(websocket)
+
         elif user_command == "chat":
             # Streaming chat loop
             while True:
@@ -113,6 +112,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
 
             message_object['func'] = "summarize"
             message_object['file_index'] = str(command_list[1])
+
         elif 'wiki s' in user_command:
             message_object['func'] = "wiki_search"
             user_command_list = user_command.split(" ")
@@ -120,14 +120,46 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                 message_object['query'] = await aioconsole.ainput("Enter your search query: ")
             else:
                 message_object['query'] = user_command_list[2]
+
         elif 'wiki r' in user_command:
             message_object['func'] = "wiki_results"
+
         elif 'wiki' in user_command:
             should_save_string = await aioconsole.ainput("Save this wiki page? (y/n): ")
             should_save = True if 'y' in should_save_string else False
             message_object['func'] = "wiki"
             message_object['query'] = user_command.split("wiki ")[1]
             message_object['should_save'] = should_save
+
+        elif ('get' in user_command) and ('char' in user_command):
+            message_object['func'] = "get_chat_characters"
+
+        elif ('ad' in user_command) and ('char' in user_command):
+            message_object['func'] = "add_chat_character"
+            if len(user_command.split(" ")) == 2:
+                character_name = await aioconsole.ainput("Enter the character name: ")
+            else: character_name = user_command.split(" ")[2]
+            message_object['character_name'] = character_name
+            character_prompt = await aioconsole.ainput("Enter the character prompt: ")
+            message_object['character_prompt'] = character_prompt
+
+        elif (('rem' in user_command) or ('del' in user_command)) and ('char' in user_command):
+            message_object['func'] = "remove_chat_character"
+            if len(user_command.split(" ")) == 2:
+                character_name = await aioconsole.ainput("Enter the character name: ")
+            else: character_name = user_command.split(" ")[2]
+            message_object['character_name'] = character_name
+
+        elif ('set' in user_command) and ('char' in user_command):
+            message_object['func'] = "set_configuration"
+            character_name = await aioconsole.ainput("Enter the character name: ")
+            message_object['character_name'] = character_name
+
+        elif ('set' in user_command) and ('config' in user_command):
+            message_object['func'] = "set_configuration"
+            configuration = await aioconsole.ainput("Enter the configuration field: ")
+            configuration_value = await aioconsole.ainput("Enter the configuration value: ")
+            message_object[configuration] = configuration_value
         else:
             message_object = {"func": user_command}
         
@@ -138,24 +170,21 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         else: await websocket.send(json.dumps(message_object))
 
 async def create_websocket_connection() -> None:
+    def print_close_message():
+        print('-'*18)
+        print("Connection closed.")
+        print()
+
     uri = f"ws://{config['hostname']}:{config['port']}/ws"  
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
         try:
             await asyncio.gather(listen_for_messages(websocket), send_messages(websocket))
-        except websockets.exceptions.ConnectionClosedOK:
-            print('-'*18)
-            print("Connection closed.")
-            print()
-        except websockets.exceptions.ConnectionClosedError:
-            print('-'*18)
-            print("Connection closed.")
-            print()
+        except websockets.exceptions.ConnectionClosedOK: print_close_message()
+        except websockets.exceptions.ConnectionClosedError: print_close_message()
         except KeyboardInterrupt:
             await websocket.close()
-            print('-'*18)
-            print("Connection closed.")
-            print()
+            print_close_message()
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(create_websocket_connection())
