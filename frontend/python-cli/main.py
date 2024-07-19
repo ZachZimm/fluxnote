@@ -38,12 +38,19 @@ def print_json_message(json_str) -> None:
         list_obj = json.loads(dict_obj["message"])
         for i in range(len(list_obj)):
             print(f"{i+1}: {list_obj[i]}")
+    elif "wiki" == dict_obj["mode"]:
+        wiki_obj = json.loads(dict_obj["message"])
+        print(wiki_obj["title"])
+        print(wiki_obj["summary"])
+        if 'content' in wiki_obj.keys():
+            print(wiki_obj["content"])
     else:
         print(f"Mode: {dict_obj['mode']}")
         try:
             print(json.dumps(dict_obj["message"], indent=4).replace("\\"*3, "\\"))
         except:
             print("Error: Could not parse json.")
+            print(dict_obj)
             print(dict_obj["message"])
     
         return
@@ -127,9 +134,13 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         elif 'wiki' in user_command:
             should_save_string = await aioconsole.ainput("Save this wiki page? (y/n): ")
             should_save = True if 'y' in should_save_string else False
+            if not should_save: 
+                return_full_string = await aioconsole.ainput("Return full content? (y/n): ")
+            else: return_full_string = "n"
             message_object['func'] = "wiki"
             message_object['query'] = user_command.split("wiki ")[1]
             message_object['should_save'] = should_save
+            message_object['return_full'] = True if 'y' in return_full_string else False
 
         elif ('get' in user_command) and ('char' in user_command):
             message_object['func'] = "get_chat_characters"

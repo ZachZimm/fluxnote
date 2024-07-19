@@ -178,14 +178,15 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
     }
     if return_full:
         return_object["content"] = data.content
+    return_object["message"] = f"Keys are {', '.join(return_object.keys())}"
 
     if should_save: # This should probably also save the summary in a separate file
         # This will also save to a database as soon as I integrate that 
         filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
         with open(filepath, "w") as file:
             file.write(data.content)
-        await send_ws_message(websocket, f"Content downloaded to {filepath}", mode="wiki")
-    return return_object, "wiki"
+        # await send_ws_message(websocket, f"Content downloaded to {filepath}", mode="wiki")
+    return json.dumps(return_object), "wiki"
 
 def get_available_files(websocket, lc_interface, help = False) -> tuple[list, str]:
     # This will not be a list of files in a path in the future, but a database query that returns a list of files associated with a user and their ids
