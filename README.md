@@ -38,33 +38,26 @@ Heraclitus, Socrates, Plato, Aristotle
 
 ## Development Plan
 
-### Backend Development
-- **Database Setup**
-  - Configuration of MongoDB
-  - Design of database schemas for notes, metadata, and knowledge graphs
-
-- **API Development**
-  - Creation of RESTful APIs for note management and AI interactions
-  - Implementation of authentication and user configuration endpoints
-
 ### AI Integration
 - **LLM Integration**
   - Selection and integration of a configurable LLM (e.g., GPT-3)
-  - Development of API endpoints for real-time note refinement and expansion
+  - Development of API endpoints for idea extreaction and summarization of source text 
+
+- **API Development**
+  - Creation of semi-stateless Websocket API for note management and AI interactions
+  - Implementation of authentication and user configuration endpoints
+  
+  **(progress is currently about here)**
+
+### Backend Development
+##### Likely to be deveoped alongside the 'basic features'
+- **Database Setup**
+  - Configuration of MongoDB (if that is what I decide to use)
+  - Design of database schemas for notes, metadata, and knowledge graphs
 
 - **AI-Native Knowledge Base**
   - Setup and configuration of Langchain for dynamic knowledge graph creation
   - Implementation of an embedding store for efficient idea representation and linking
-
-### AI Assistant Features
-- **Custom Training Data Preparation**
-  - Automated collection and preprocessing of user note data for model training
-  - Dynamic dataset creation based on user-defined importance and relevance
-
-- **AI Model Training**
-  - Custom model selection and configuration for note-specific insights
-  - Continuous training pipeline setup for model adaptation to user content
-  - Regular model evaluation and fine-tuning based on user interactions and feedback
 
 ### Basic Features
 - **Note Management**
@@ -75,11 +68,22 @@ Heraclitus, Socrates, Plato, Aristotle
   - Integration of LLM-driven Socratic questioning and contradiction generation
   - Features for identifying and suggesting alternatives to existing note content
 
+### AI Assistant Features
+- **Custom Training Data Preparation**
+  - Automated collection and preprocessing of user note data for model training
+    - precicely what training data might be used, I am not sure
+    - post-training may not be nessecary
+  - Dynamic dataset creation based on user-defined importance and relevance
+
+- **AI Model Training**
+  - Custom model selection and configuration for note-specific insights
+  - Continuous training pipeline setup for model adaptation to user content
+  - Regular model evaluation and fine-tuning based on user interactions and feedback
+
 ### User Feedback and Testing
 - **Internal Testing**
   - Development of comprehensive test cases covering core and AI functionalities
   - Rigorous manual testing of AI-driven features for accuracy and relevance
 
-- **Feedback Loop**
-  - Setup for real-time collection of user feedback on AI interactions and note enhancements
-  - Iterative improvements and feature updates based on user-driven insights and data analysis
+- **External Testing**
+  - Find other people who want to use this and gather their feedback

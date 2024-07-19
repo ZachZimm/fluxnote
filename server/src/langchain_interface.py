@@ -105,31 +105,6 @@ class langchain_interface():
         # return self.secret_config_json
         return "Disabled for security"
 
-
-    # def stream_langchain_chat_loop(self, history: list = []) -> list:
-    #     history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
-    #     self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
-    #                             api_key=self.secret_config_json['openai_api_key'],
-    #                             max_tokens=600,
-    #                             temperature=0.7
-    #                              )
-
-    #     while True:
-    #         message = input("\n> ")
-    #         if message == "exit":
-    #             return history
-    #         history.append(HumanMessage(content=message))
-    #         parser = StrOutputParser()
-    #         chain = self.model | parser 
-
-    #         assistant_message = ''
-    #         print()
-    #         for chunk in chain.stream(history):
-    #             print(chunk, end="", flush=True)
-    #             assistant_message += chunk
-    #         print()
-    #         history.append(AIMessage(content=assistant_message))
-
     async def stream_langchain_chat_loop_async_generator(self, history: list = []):
         history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
         if self.config_json['use_openai']:
@@ -144,35 +119,6 @@ class langchain_interface():
         parser = StrOutputParser()
         chain = self.model | parser 
         return chain.astream(history)
-
-    
-    # def langchain_summarize_text(self, text: str, history: list = []) -> tuple[list, Summary]:
-    #     _history = history
-    #     _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
-    #     _history.append(HumanMessage(content=text))
-        
-    #     self.model = ChatOpenAI(
-    #         base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
-    #         max_tokens=1536,
-    #         temperature=0.5,
-    #         )
-    #     parser = StrOutputParser()
-    #     chain = self.model | parser
-    #     assistant_message = ''
-    #     print('summarizing...')
-    #     for chunk in chain.stream(_history):
-    #         assistant_message += chunk
-
-    #     # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
-    #     summary_result = parse_llm_output(Summary, assistant_message)
-    #     if summary_result["error"]:
-    #         print("Exiting...")
-    #         return history, None
-    #     summary_obj = summary_result["object"]
-    #     # print(summary_obj.summary)
-    #     # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
-    #     history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
-    #     return history, summary_obj
 
     async def langchain_summarize_text_async(self, text: str, history: list = []) -> tuple[list, Summary]:
         time_start = time.time()
@@ -204,39 +150,3 @@ class langchain_interface():
         # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
         history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
         return history, summary_obj
-
-    # def text_summary_loop(self, history: list = []) -> list: 
-    #     # This function is essentialy deprecated
-    #     print("1: sample_data/marcuscrassus.txt")
-    #     print("2: sample_data/juluiscaesar.txt")
-    #     print("3: sample_data/thaiculture.txt")
-    #     file_path = input("Provide the path to the text file you would like to summarize:  ")
-    #     if file_path == "exit":
-    #         exit()
-    #     elif file_path == "skip":
-    #         return history
-    #     elif file_path == "1":
-    #         file_path = "sample_data/marcuscrassus.txt"
-    #     elif file_path == "2":
-    #         file_path = "sample_data/juluiscaesar.txt"
-    #     elif file_path == "3":
-    #         file_path = "sample_data/thaiculture.txt"
-    #     elif file_path == "":
-    #         file_path = "../README.md"
-    #     print()
-    #     text = ""
-    #     if not os.path.exists(file_path):
-    #         print("File not found.")
-    #         return {"error": "File not found."}
-
-    #     with open(file_path, "r") as file:
-    #         text = file.read()
-        
-    #     history, summary = self.langchain_summarize_text(text, history)
-
-    #     # once a little more infrastructure is in place, we can save the summaries to a database
-    #     # the database entries should include the user, the topic, the original text, the summary object, and the date
-        
-    #     return history
-
-
