@@ -40,9 +40,12 @@ def print_json_message(json_str) -> None:
             print(f"{i+1}: {list_obj[i]}")
     elif "wiki" == dict_obj["mode"]:
         wiki_obj = json.loads(dict_obj["message"])
-        print(wiki_obj["title"])
-        print(wiki_obj["summary"])
-        if 'content' in wiki_obj.keys():
+        wiki_keys = wiki_obj.keys()
+        if 'title' in wiki_keys:
+            print(wiki_obj["title"])
+        if 'summary' in wiki_keys:
+            print(wiki_obj["summary"])
+        if 'content' in wiki_keys:
             print(wiki_obj["content"])
     else:
         print(f"Mode: {dict_obj['mode']}")
@@ -52,7 +55,6 @@ def print_json_message(json_str) -> None:
             print("Error: Could not parse json.")
             print(dict_obj)
             print(dict_obj["message"])
-    
         return
 
 async def listen_for_messages(websocket) -> None:

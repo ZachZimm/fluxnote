@@ -171,7 +171,6 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
     if not query.isdigit():
         return "Invalid input. Enter a number corresponding to a search result.", "wiki error"
     data = wiki.get_data(wiki_results[lc_interface.userid][int(query) - 1])
-    return_object = {}
     return_object = {
         "title": data.title,
         "summary": data.summary,
