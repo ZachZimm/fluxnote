@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import json
 import aioconsole
+import tts
 
 config_dir = "config.json"
 config = json.load(open(config_dir))
@@ -15,17 +16,34 @@ def print_summary(summary):
         print(f"{idea}: {summary[idea]['idea']}")
         i += 1
 
+streaming_message = ""
+def is_full_sentance(message):
+    if len(message) < 3: return False
+    if message[-1] == '.' and message[-2] == ' ': return True
+    if message[-1] == '!' and message[-2] == ' ': return True
+    if message[-1] == '?' and message[-2] == ' ': return True
+    return False
+
 def print_json_message(json_str) -> None:
     dict_obj = json.loads(json_str)
     if dict_obj["mode"] == "chat":
         print(f"Chat: {dict_obj['message']}")
         return
+
     elif 'streaming' in dict_obj["mode"]:
         if 'finished' in dict_obj["mode"]:
             print("\n\n> ", end="")
+            streaming_message = ""
             return
+        streaming_message += dict_obj["message"]
         print(dict_obj["message"], end="", flush=True)
+        if is_full_sentance(streaming_message):
+            # await tts.aspeak_chunk(streaming_message)
+            if config["speech_enabled"]:
+                asyncio.run(tts.aspeak_chunk(streaming_message))
+            streaming_message = ""
         return
+
     elif "summary" in dict_obj["mode"]:
         if "error" in dict_obj["mode"]:
             print(f"Error: {dict_obj['message']}")

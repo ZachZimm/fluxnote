@@ -1,2 +1,5 @@
 websockets
 aioconsole
+asyncio
+edge-tts
+pygame
