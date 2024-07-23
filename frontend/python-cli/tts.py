@@ -22,20 +22,17 @@ async def atest_voices(text) -> None:
         await asyncio.sleep(1)
 
 async def aplay_audio(path):
-    try:
-        sound = mixer.Sound(path)
-        sound.play()
-        while mixer.get_busy():
-            await asyncio.sleep(0.1)
-    except Exception as e:
-        print(f"Error while playing sound: \n{e}")
+    sound = mixer.Sound(path)
+    sound.play()
+    while mixer.get_busy():
+        await asyncio.sleep(0.1)
 
-async def aspeak_chunk(text) -> None:
+async def aspeak_chunk(text) -> str:
     communicate = edge_tts.Communicate(text, VOICE)
     output_name = str(time.time()) + ".mp3"
     output_name = SPEECH_OUTPUT_DIR + os.sep + output_name
     await communicate.save(output_name)
-    await aplay_audio(output_name)
+    return output_name
 
 if not os.path.exists(SPEECH_OUTPUT_DIR):
     os.mkdir(SPEECH_OUTPUT_DIR)

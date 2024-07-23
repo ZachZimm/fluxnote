@@ -17,13 +17,14 @@ def print_summary(summary):
         i += 1
 
 streaming_message = ""
-tts_queue = asyncio.Queue()
+tts_generation_queue = asyncio.Queue()
+tts_playback_queue = asyncio.Queue()
 num_sentences_per_generation = 2
 num_sentences_this_message = 0
 
 def queue_audio(config, message):
     if config["speech_enabled"]:
-        tts_queue.put_nowait(message)
+        tts_generation_queue.put_nowait(message)
 
 def is_full_sentence(message):
     message = message.strip().replace("\n", " ").replace("...", ",")
@@ -102,11 +103,19 @@ def print_json_message(json_str) -> None:
             print(dict_obj["message"])
         return
 
-async def tts_consumer():
+
+async def tts_generator():
     while True:
-        message = await tts_queue.get()
-        await tts.aspeak_chunk(message)
-        tts_queue.task_done()
+        message = await tts_generation_queue.get()
+        output_name = await tts.aspeak_chunk(message)
+        tts_playback_queue.put_nowait(output_name)
+        tts_generation_queue.task_done()
+
+async def tts_player():
+    while True:
+        path = await tts_playback_queue.get()
+        await tts.aplay_audio(path)
+        tts_playback_queue.task_done()
 
 async def listen_for_messages(websocket) -> None:
     while True:
@@ -245,7 +254,7 @@ async def create_websocket_connection() -> None:
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
         try:
-            await asyncio.gather(listen_for_messages(websocket), send_messages(websocket), tts_consumer())
+            await asyncio.gather(listen_for_messages(websocket), send_messages(websocket), tts_generator(), tts_player())
         except websockets.exceptions.ConnectionClosedOK: print_close_message()
         except websockets.exceptions.ConnectionClosedError: print_close_message()
         except KeyboardInterrupt:
