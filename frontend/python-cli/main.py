@@ -17,14 +17,34 @@ def print_summary(summary):
         i += 1
 
 streaming_message = ""
-def is_full_sentance(message):
+tts_queue = asyncio.Queue()
+num_sentences_per_generation = 2
+num_sentences_this_message = 0
+
+def queue_audio(config, message):
+    if config["speech_enabled"]:
+        tts_queue.put_nowait(message)
+
+def is_full_sentence(message):
+    message = message.strip().replace("\n", " ").replace("...", ",")
+
     if len(message) < 3: return False
-    if message[-1] == '.' and message[-2] == ' ': return True
-    if message[-1] == '!' and message[-2] == ' ': return True
-    if message[-1] == '?' and message[-2] == ' ': return True
+    if message.endswith("..."): return True
+    if message.endswith("."): return True
+    if message.endswith("!"): return True
+    if message.endswith("?"): return True
     return False
 
+def fix_prefixes(message: str) -> str:
+    message = message.replace("Dr.", "Doctor")
+    message = message.replace("Mr.", "Mister")
+    message = message.replace("Mrs.", "Misses")
+    message = message.replace("Ms.", "Miss")
+    return message
+    
+
 def print_json_message(json_str) -> None:
+    global streaming_message
     dict_obj = json.loads(json_str)
     if dict_obj["mode"] == "chat":
         print(f"Chat: {dict_obj['message']}")
@@ -32,16 +52,23 @@ def print_json_message(json_str) -> None:
 
     elif 'streaming' in dict_obj["mode"]:
         if 'finished' in dict_obj["mode"]:
+            if len(streaming_message) > 0:
+                queue_audio(config, streaming_message)
             print("\n\n> ", end="")
             streaming_message = ""
             return
+
         streaming_message += dict_obj["message"]
+        streaming_message = fix_prefixes(streaming_message)
         print(dict_obj["message"], end="", flush=True)
-        if is_full_sentance(streaming_message):
-            # await tts.aspeak_chunk(streaming_message)
-            if config["speech_enabled"]:
-                asyncio.run(tts.aspeak_chunk(streaming_message))
-            streaming_message = ""
+        if is_full_sentence(streaming_message):
+            global num_sentences_this_message
+            num_sentences_this_message += 1
+
+            if num_sentences_this_message >= num_sentences_per_generation:
+                num_sentences_this_message = 0
+                queue_audio(config, streaming_message)
+                streaming_message = ""
         return
 
     elif "summary" in dict_obj["mode"]:
@@ -74,6 +101,12 @@ def print_json_message(json_str) -> None:
             print(dict_obj)
             print(dict_obj["message"])
         return
+
+async def tts_consumer():
+    while True:
+        message = await tts_queue.get()
+        await tts.aspeak_chunk(message)
+        tts_queue.task_done()
 
 async def listen_for_messages(websocket) -> None:
     while True:
@@ -210,7 +243,7 @@ async def create_websocket_connection() -> None:
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
         try:
-            await asyncio.gather(listen_for_messages(websocket), send_messages(websocket))
+            await asyncio.gather(listen_for_messages(websocket), send_messages(websocket), tts_consumer())
         except websockets.exceptions.ConnectionClosedOK: print_close_message()
         except websockets.exceptions.ConnectionClosedError: print_close_message()
         except KeyboardInterrupt:

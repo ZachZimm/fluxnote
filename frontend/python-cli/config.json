@@ -1,5 +1,5 @@
 {
-	"speech_enabled": true,
+	"speech_enabled": false,
 	"hostname": "localhost",
 	"port": 8090
 
