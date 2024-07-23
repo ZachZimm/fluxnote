@@ -4,3 +4,4 @@ langchain_openai
 pymediawiki
 fastapi
 uvicorn
+pymongo

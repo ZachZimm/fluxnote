@@ -44,9 +44,10 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
         
 
         llm_output = llm_output.strip()
-        llm_output.replace("\n", " ")
-        llm_output = llm_output.replace("  ", " ") # Remove double spaces
-        llm_output = llm_output.replace("  ", " ") # do it again in case of an odd number of spaces
+        llm_output = llm_output.replace("\n", " ")
+        llm_output = llm_output.replace("\t","")
+        llm_output = llm_output.replace("  ", "") # Remove double spaces
+        llm_output = llm_output.replace("  ", "") # do it again in case of an odd number of spaces
         llm_output = llm_output.replace("} {", "}, {").replace("}{", "},{") # Add missing commas between objects
         llm_output = llm_output.replace("\\", "") # Remove backslashes
         llm_output = replace_double_quotes_within_string(llm_output) # Replace double quotes within strings

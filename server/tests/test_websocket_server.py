@@ -216,7 +216,7 @@ class TestWebSocketServer(unittest.TestCase):
                 websocket.send_json({"func": "wiki", "query": "1", "return_full": True, "should_save": False})
                 data = websocket.receive_json()
                 self.assertEqual(data['mode'], "wiki")
-                data_json = data['message']
+                data_json = json.loads(data['message'])
                 self.assertIsInstance(data_json, dict)
                 self.assertTrue('title' in data_json.keys()) # Check that all of the expected keys are present
                 self.assertTrue('summary' in data_json.keys())
