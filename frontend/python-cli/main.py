@@ -215,15 +215,17 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['character_name'] = character_name
 
         elif ('set' in user_command) and ('char' in user_command):
-            message_object['func'] = "set_configuration"
+            message_object['func'] = "configure"
             character_name = await aioconsole.ainput("Enter the character name: ")
-            message_object['character_name'] = character_name
+            message_object['chat_character'] = character_name
 
         elif ('set' in user_command) and ('config' in user_command):
-            message_object['func'] = "set_configuration"
+            message_object['func'] = ""
             configuration = await aioconsole.ainput("Enter the configuration field: ")
             configuration_value = await aioconsole.ainput("Enter the configuration value: ")
             message_object[configuration] = configuration_value
+        elif 'clear' in user_command:
+            message_object['func'] = "clear_history"
         else:
             message_object = {"func": user_command}
         
