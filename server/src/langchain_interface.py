@@ -13,6 +13,28 @@ from pymongo import MongoClient
 # TODO create a way of keeping the secrets_config up to date with available secrets without tracking it in git
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
 # once I start using something that needs to be secret, anyways
+
+def serialize_history(history: list) -> str:
+    _history = []
+    for message in history:
+        history_message = {}
+        history_message['role'] = message.type
+        history_message['content'] = message.content
+        _history.append(history_message)
+    return json.dumps(_history, indent=4)
+
+def deserialize_history(history_str: str) -> list:
+    history = []
+    history_list = json.loads(history_str)
+    for message in history_list:
+        if message['role'] == 'Human':
+            history.append(HumanMessage(content=message['content']))
+        elif message['role'] == 'AI':
+            history.append(AIMessage(content=message['content']))
+        elif message['role'] == 'System':
+            history.append(SystemMessage(content=message['content']))
+    return history
+
 class langchain_interface():
     userid = "-1"
     chat_character = "Sherlock-Holmes" # These are all defaults
@@ -70,6 +92,16 @@ class langchain_interface():
         self.notes_dir = self.config_json['notes_directory']
         if self.notes_dir[-1] != "/":
             self.notes_dir += "/"
+        
+        # if there is no history in the database, create it
+        if not self.db["history"].find_one({"userid": self.userid}): 
+            history = {
+                "userid": self.userid,
+                "history": serialize_history(self.history)
+            }
+            self.db["history"].insert_one(history)
+
+
     
     def add_chat_character(self, character_name: str, character_bio) -> None:
         self.system_prompts[character_name] = character_bio
@@ -98,22 +130,29 @@ class langchain_interface():
 
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))
+        # update the history in the database
+        update = {"$set": {"history": serialize_history(history)}}
+        result = self.db["history"].update_one({"userid": self.userid}, update)
         return history
     
     def clear_history(self) -> None:
+        self.db["history"].update_one({"userid": self.userid}, {"$set": {"history": "[]"}})
         self.history = []
     
     def get_history(self, userid: str = "") -> list:
-        return self.history
+        result = self.get_history_str()
+        return deserialize_history(result)
     
     def get_history_str(self, _indent: int = 4) -> str:
-        _history = []
-        for message in self.history:
-            history_message = {}
-            history_message['role'] = message.type
-            history_message['content'] = message.content
-            _history.append(history_message)
-        return json.dumps(_history, indent=_indent)
+        # _history = []
+        # for message in self.history:
+        #     history_message = {}
+        #     history_message['role'] = message.type
+        #     history_message['content'] = message.content
+        #     _history.append(history_message)
+        # return json.dumps(_history, indent=_indent)
+        result = self.db["history"].find_one({"userid": self.userid})
+        return result["history"]
  
     def get_config_str(self, _indent: int = 4) -> str:
         return json.dumps(self.get_config(), indent=_indent)
@@ -138,7 +177,8 @@ class langchain_interface():
         return "Disabled for security"
 
     async def stream_langchain_chat_loop_async_generator(self, history: list = [], max_tokens: int = 600, temperature: float = 0.7) -> StreamingStdOutCallbackHandler:
-        history.append(SystemMessage(content=self.system_prompts[self.chat_character]))
+        self.append_history(self.system_prompts[self.chat_character], history, is_human=False)
+
         if self.config_json['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=600, temperature=0.7)
         else: 
@@ -180,5 +220,6 @@ class langchain_interface():
         runtime = time.time() - time_start
         print(f"Runtime: {round(runtime, 2)} seconds")
         # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
-        history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
+        # history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
+        self.append_history(str(summary_obj.model_dump()), history)
         return history, summary_obj

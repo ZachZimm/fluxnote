@@ -53,6 +53,8 @@ def print_json_message(json_str) -> None:
 
     elif 'streaming' in dict_obj["mode"]:
         if 'finished' in dict_obj["mode"]:
+            streaming_message = streaming_message.replace("\\\n", "").replace("\\n", "").replace("\\", "")
+            streaming_message = streaming_message.strip()
             if len(streaming_message) > 0:
                 queue_audio(config, streaming_message)
             print("\n\n> ", end="")
@@ -148,6 +150,8 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                 elif message == "quit":
                     await close_and_exit(websocket)
                 print()
+                # this should be easy enough to re-implement as REST
+                # if that ever proves nessecary
                 # some examples:
                 """
                 {"func": "chat", "message": "Hello"}
