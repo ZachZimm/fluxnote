@@ -25,7 +25,6 @@ async def chat(websocket, lc_interface, message, help=False, max_tokens = 600, t
     async for chunk in generator:
         assistant_message += chunk
         await send_ws_message(websocket, chunk, mode="chat streaming")
-    # await send_ws_message(websocket, "<stream_finished>", mode="chat streaming finished")
 
     history = lc_interface.append_history(assistant_message, history, is_human = False)
     return "<stream_finished>", "chat streaming finished"

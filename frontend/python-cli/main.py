@@ -138,7 +138,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         if user_command == "quit":
             await close_and_exit(websocket)
 
-        elif user_command == "chat":
+        elif user_command == "chat" or ('chat' in user_command and len(user_command.split(" ")) == 2 and user_command.split(" ")[1].isdigit()):
             # Streaming chat loop
             while True:
                 message = await aioconsole.ainput()
