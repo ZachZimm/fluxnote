@@ -159,6 +159,10 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                 {"func": "options", "message": "options"}
                 {"func": "quit"}
                 """
+                user_command_list = user_command.split(" ")
+                if len(user_command_list) == 2:
+                    if user_command_list[1].isdigit():
+                        message_object['max_tokens'] = int(user_command_list[1])
                 message_object['func'] = "chat"
                 message_object['message'] = message
                 await websocket.send(json.dumps(message_object))

@@ -14,13 +14,13 @@ wiki_results = {}
 
 # TODO break these all out into a separate file
 
-async def chat(websocket, lc_interface, message, help=False) -> tuple[str, str]:
+async def chat(websocket, lc_interface, message, help=False, max_tokens = 600, temperature = 0.7) -> tuple[str, str]:
     if help == True:
         return "Chat with the LLM, using your configured character. Information from summaries can be loaded into history for the LLM's reference but the way of doing that is in development. Currently it involves creating a summary then initiating a chat session. Chat history is currently deleted on disconnection, though that is likely to change.", "help"
     user_message = message.strip()
     history = lc_interface.get_history()
     history = lc_interface.append_history(user_message, history, is_human = True) 
-    generator = await lc_interface.stream_langchain_chat_loop_async_generator(history)
+    generator = await lc_interface.stream_langchain_chat_loop_async_generator(history, max_tokens, temperature)
     assistant_message = ""
     async for chunk in generator:
         assistant_message += chunk
