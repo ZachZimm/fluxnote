@@ -94,6 +94,10 @@ class langchain_interface():
     
     def update_config(self, new_config_key: str, new_config_value: str) -> bool:
         self.config_json[new_config_key] = new_config_value
+        # update config on disk
+        # this will be a database update in the future
+        with open(self.config_path, 'w') as config_file:
+            json.dump(self.config_json, config_file, indent=4)
         return True
     
     def get_secret_config_str(self, _indent: int = 4) -> str:
