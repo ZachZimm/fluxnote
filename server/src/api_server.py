@@ -47,6 +47,12 @@ def add_chat_chatacter(websocket, lc_interface, character_name, character_prompt
     lc_interface.add_chat_character(character_name, character_prompt)
     return f"Chat character added: {character_name}", "status"
 
+def update_chat_character(websocket, lc_interface, character_name, character_prompt, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Update a chat character in the configuration. Accepts `character_name` and `character_bio` strings", "help"
+    lc_interface.update_chat_character(character_name, character_prompt)
+    return f"Chat character updated: {character_name}", "status"
+
 def get_chat_characters(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Get a list of available chat characters.", "help"
@@ -219,6 +225,7 @@ available_request_functions = {
     "chat": chat,
     "add_chat_character": add_chat_chatacter,
     "get_chat_characters": get_chat_characters,
+    "update_chat_character": update_chat_character,
     "remove_chat_character": remove_chat_character,
     "get_configuration": get_configuration,
     "get_configuration_options": get_configuration_options,

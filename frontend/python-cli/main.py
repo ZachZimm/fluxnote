@@ -43,12 +43,16 @@ def fix_prefixes(message: str) -> str:
     message = message.replace("Ms.", "Miss")
     return message
     
+def aecho(message, end="\n", flush=False):
+    async def _aecho(message, end="\n", flush=False):
+        print(message, end=end, flush=flush)
+    asyncio.create_task(_aecho(message, end=end, flush=flush))
 
 def print_json_message(json_str) -> None:
     global streaming_message
     dict_obj = json.loads(json_str)
     if dict_obj["mode"] == "chat":
-        print(f"Chat: {dict_obj['message']}")
+        aecho(f"Chat: {dict_obj['message']}")
         return
 
     elif 'streaming' in dict_obj["mode"]:
@@ -57,13 +61,13 @@ def print_json_message(json_str) -> None:
             streaming_message = streaming_message.strip()
             if len(streaming_message) > 0:
                 queue_audio(config, streaming_message)
-            print("\n\n> ", end="")
+            aecho("\n> ", end="")
             streaming_message = ""
             return
 
         streaming_message += dict_obj["message"]
         streaming_message = fix_prefixes(streaming_message)
-        print(dict_obj["message"], end="", flush=True)
+        aecho(dict_obj["message"], end="", flush=True)
         if is_full_sentence(streaming_message):
             global num_sentences_this_message
             num_sentences_this_message += 1
@@ -76,7 +80,7 @@ def print_json_message(json_str) -> None:
 
     elif "summary" in dict_obj["mode"]:
         if "error" in dict_obj["mode"]:
-            print(f"Error: {dict_obj['message']}")
+            aecho(f"Error: {dict_obj['message']}")
             return
         if '{' == dict_obj["message"][0]:
             dict_obj = json.loads(dict_obj["message"])
@@ -85,24 +89,26 @@ def print_json_message(json_str) -> None:
     elif "wiki search results" in dict_obj["mode"]:
         list_obj = json.loads(dict_obj["message"])
         for i in range(len(list_obj)):
-            print(f"{i+1}: {list_obj[i]}")
+            aecho(f"{i+1}: {list_obj[i]}")
     elif "wiki" == dict_obj["mode"]:
         wiki_obj = json.loads(dict_obj["message"])
         wiki_keys = wiki_obj.keys()
         if 'title' in wiki_keys:
-            print(wiki_obj["title"])
+            aecho(wiki_obj["title"])
         if 'summary' in wiki_keys:
-            print(wiki_obj["summary"])
+            aecho(wiki_obj["summary"])
         if 'content' in wiki_keys:
-            print(wiki_obj["content"])
+            aecho(wiki_obj["content"])
     else:
-        print(f"Mode: {dict_obj['mode']}")
+        aecho(f"Mode: {dict_obj['mode']}\n")
+        
         try:
-            print(json.dumps(dict_obj["message"], indent=4).replace("\\"*3, "\\"))
-        except:
-            print("Error: Could not parse json.")
-            print(dict_obj)
-            print(dict_obj["message"])
+            message = dict_obj["message"].replace("\\"*3, "\\")
+            aecho(message)
+        except Exception as e:
+            # print(f"Error: Could not parse json.\n{e}\n")
+            aecho(f"Error: Could not parse json.\n{e}\n")
+            aecho(dict_obj["message"])
         return
 
 
@@ -241,6 +247,31 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             configuration = await aioconsole.ainput("Enter the configuration field: ")
             configuration_value = await aioconsole.ainput("Enter the configuration value: ")
             message_object[configuration] = configuration_value
+        elif ('set' in user_command) and ('voice' in user_command):
+            print("Available voices:")
+            voices = tts.GOOD_FEMALE_VOICES
+            i = 0
+            for voice in tts.GOOD_FEMALE_VOICES:
+                i += 1
+                print(f"{i}: {voice}")
+            voice = await aioconsole.ainput("Enter your selected voice: ")
+            if voice in tts.GOOD_FEMALE_VOICES:
+                tts.VOICE = voice 
+            elif voice.isdigit() and int(voice) <= len(voices):
+                tts.VOICE = voices[int(voice)-1]
+            else: print("Invalid voice.")
+            continue # this is a client method
+        elif ('get' in user_command) and ('voice' in user_command):
+            voices = tts.VOICE
+            print(voices)
+            continue # this is a client method
+        elif 'voices' in user_command:
+            voices = tts.GOOD_FEMALE_VOICES
+            for voice in voices:
+                print(voice)
+            continue # this is a client method
+        elif 'history' == user_command:
+            message_object['func'] = "chat_history"
         elif 'clear' in user_command:
             message_object['func'] = "clear_history"
         else:

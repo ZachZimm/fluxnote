@@ -21,7 +21,7 @@ def serialize_history(history: list) -> str:
         history_message['role'] = message.type
         history_message['content'] = message.content
         _history.append(history_message)
-    return json.dumps(_history, indent=4)
+    return json.dumps(_history)
 
 def deserialize_history(history_str: str) -> list:
     history = []
@@ -110,6 +110,7 @@ class langchain_interface():
         self.system_prompts = self.get_chat_characters()
     
     def get_chat_characters(self) -> dict:
+        print(self.userid)
         result = self.db["config"].find_one({"userid": self.userid})
         return result["system_prompts"]
 
@@ -123,6 +124,14 @@ class langchain_interface():
                 update = {"$unset": {f"system_prompts.{character_name}": ""}}
                 result = self.db["config"].update_one({"userid": self.userid}, update) 
 
+        return False
+    
+    def update_chat_character(self, character_name: str, character_bio: str) -> bool:
+        if character_name in self.system_prompts.keys():
+            self.system_prompts[character_name] = character_bio
+            update = {"$set": {f"system_prompts.{character_name}": character_bio}}
+            result = self.db["config"].update_one({"userid": self.userid}, update)
+            return True
         return False
 
     def get_notes_dir(self) -> str:
