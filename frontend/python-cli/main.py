@@ -262,8 +262,8 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             else: print("Invalid voice.")
             continue # this is a client method
         elif ('get' in user_command) and ('voice' in user_command):
-            voices = tts.VOICE
-            print(voices)
+            voice = tts.VOICE
+            print(f"Selected voice: {voice}")
             continue # this is a client method
         elif 'voices' in user_command:
             voices = tts.GOOD_FEMALE_VOICES

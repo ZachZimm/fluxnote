@@ -24,6 +24,13 @@ def serialize_history(history: list) -> str:
     return json.dumps(_history)
 
 def deserialize_history(history_str: str) -> list:
+    print(f"history_str: {history_str}")
+    if history_str.startswith('\"') and history_str.endswith('"'): 
+        history_str = history_str[1:-1]
+    history_str = history_str.replace("\\n", "")
+    history_str = history_str.replace("\\", "")
+    if history_str == '[]': return []
+
     history = []
     history_list = json.loads(history_str)
     for message in history_list:
@@ -153,15 +160,8 @@ class langchain_interface():
         return deserialize_history(result)
     
     def get_history_str(self, _indent: int = 4) -> str:
-        # _history = []
-        # for message in self.history:
-        #     history_message = {}
-        #     history_message['role'] = message.type
-        #     history_message['content'] = message.content
-        #     _history.append(history_message)
-        # return json.dumps(_history, indent=_indent)
         result = self.db["history"].find_one({"userid": self.userid})
-        return result["history"]
+        return json.dumps(result["history"])
  
     def get_config_str(self, _indent: int = 4) -> str:
         return json.dumps(self.get_config(), indent=_indent)
