@@ -14,16 +14,21 @@ from pymongo import MongoClient
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
 # once I start using something that needs to be secret, anyways
 
-def serialize_history(history: list) -> str:
+def serialize_history(history: list) -> str: # This should be in the utils file
     _history = []
     for message in history:
         history_message = {}
+        if isinstance(message, dict):
+            history_message['role'] = message['role']
+            history_message['content'] = message['content']
+            _history.append(history_message)
+            continue
         history_message['role'] = message.type
         history_message['content'] = message.content
         _history.append(history_message)
     return json.dumps(_history)
 
-def deserialize_history(history_str: str) -> list:
+def deserialize_history(history_str: str) -> list: # This should be in the utils file
     print(f"history_str: {history_str}")
     if history_str.startswith('\"') and history_str.endswith('"'): 
         history_str = history_str[1:-1]
@@ -156,8 +161,8 @@ class langchain_interface():
         self.history = []
     
     def get_history(self, userid: str = "") -> list:
-        result = self.get_history_str()
-        return deserialize_history(result)
+        result = self.db["history"].find_one({"userid": self.userid})
+        return json.loads(result["history"])
     
     def get_history_str(self, _indent: int = 4) -> str:
         result = self.db["history"].find_one({"userid": self.userid})

@@ -136,6 +136,7 @@ async def close_and_exit(websocket) -> None:
 # This function is used to send messages to the server
 # I think it should be in a seperate file and further refactored
 async def send_messages(websocket) -> None: # consider checking for success and returning a boolean
+    tts.VOICE = config["speech_voice"]
     while True:
         message_object = {}
         should_continue = False
@@ -270,6 +271,11 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             for voice in voices:
                 print(voice)
             continue # this is a client method
+        elif ('save' in user_command) and ('config' in user_command):
+            with open(config_dir, 'w') as f:
+                json.dump(config, f)
+            print("Configuration saved.")
+            continue
         elif 'history' == user_command:
             message_object['func'] = "chat_history"
         elif 'clear' in user_command:
