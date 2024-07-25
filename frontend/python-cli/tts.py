@@ -47,10 +47,3 @@ try:
 except Exception as e:
     print(f"Error: {e}")
     AUDIO_ENABLED = False
-
-if __name__ == "__main__":
-    time_start = time.time()
-    text = "Hi Zach, I hope you had a great day! How can I help you?"
-    asyncio.run(aspeak_chunk(text))
-    print(f"Runtime: {round(time.time() - time_start, 1)} seconds")
-    input("Press Enter to exit...")

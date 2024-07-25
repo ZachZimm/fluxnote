@@ -19,6 +19,7 @@ def print_summary(summary):
 streaming_message = ""
 tts_generation_queue = asyncio.Queue()
 tts_playback_queue = asyncio.Queue()
+is_fist_sentence = True
 num_sentences_per_generation = 2
 num_sentences_this_message = 0
 
@@ -50,6 +51,7 @@ def aecho(message, end="\n", flush=False):
 
 def print_json_message(json_str) -> None:
     global streaming_message
+    global is_fist_sentence
     dict_obj = json.loads(json_str)
     if dict_obj["mode"] == "chat":
         aecho(f"Chat: {dict_obj['message']}")
@@ -63,6 +65,7 @@ def print_json_message(json_str) -> None:
                 queue_audio(config, streaming_message)
             aecho("\n> ", end="")
             streaming_message = ""
+            is_fist_sentence = True
             return
 
         streaming_message += dict_obj["message"]
@@ -72,10 +75,11 @@ def print_json_message(json_str) -> None:
             global num_sentences_this_message
             num_sentences_this_message += 1
 
-            if num_sentences_this_message >= num_sentences_per_generation:
+            if num_sentences_this_message >= num_sentences_per_generation or is_fist_sentence:
                 num_sentences_this_message = 0
                 queue_audio(config, streaming_message)
                 streaming_message = ""
+                is_fist_sentence = False
         return
 
     elif "summary" in dict_obj["mode"]:
@@ -106,7 +110,6 @@ def print_json_message(json_str) -> None:
             message = dict_obj["message"].replace("\\"*3, "\\")
             aecho(message)
         except Exception as e:
-            # print(f"Error: Could not parse json.\n{e}\n")
             aecho(f"Error: Could not parse json.\n{e}\n")
             aecho(dict_obj["message"])
         return
