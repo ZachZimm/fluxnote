@@ -30,7 +30,7 @@ def queue_audio(config, message):
 def is_full_sentence(message):
     message = message.strip().replace("\n", " ").replace("...", ",")
 
-    if len(message) < 3: return False
+    if len(message) < 5: return False
     if message.endswith("..."): return True
     if message.endswith("."): return True
     if message.endswith("!"): return True
@@ -75,7 +75,7 @@ def print_json_message(json_str) -> None:
             global num_sentences_this_message
             num_sentences_this_message += 1
 
-            if num_sentences_this_message >= num_sentences_per_generation or is_fist_sentence:
+            if (num_sentences_this_message >= num_sentences_per_generation) or is_fist_sentence:
                 num_sentences_this_message = 0
                 queue_audio(config, streaming_message)
                 streaming_message = ""

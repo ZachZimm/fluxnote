@@ -3,3 +3,4 @@ aioconsole
 asyncio
 edge-tts
 pygame
+inflect
