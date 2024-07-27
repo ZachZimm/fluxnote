@@ -108,7 +108,14 @@ def print_json_message(json_str) -> None:
         
         try:
             message = dict_obj["message"].replace("\\"*3, "\\")
-            aecho(message)
+            if isinstance(message, list):
+                for m in message:
+                    aecho(m)
+            elif isinstance(message, dict):
+                for key in message.keys():
+                    aecho(f"{key}: {message[key]}")
+            else:
+                aecho(message)
         except Exception as e:
             aecho(f"Error: Could not parse json.\n{e}\n")
             aecho(dict_obj["message"])
