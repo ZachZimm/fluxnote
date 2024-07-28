@@ -1,8 +1,11 @@
 import asyncio
 import websockets
 import json
+import queue
 import aioconsole
 import tts
+import time
+from threading import Thread
 
 config_dir = "config.json"
 config = json.load(open(config_dir))
@@ -19,6 +22,7 @@ def print_summary(summary):
 streaming_message = ""
 tts_generation_queue = asyncio.Queue()
 tts_playback_queue = asyncio.Queue()
+print_queue = queue.Queue()
 is_fist_sentence = True
 num_sentences_per_generation = 2
 num_sentences_this_message = 0
@@ -43,11 +47,31 @@ def fix_prefixes(message: str) -> str:
     message = message.replace("Mrs.", "Misses")
     message = message.replace("Ms.", "Miss")
     return message
+
+def print_worker():
+    while True:
+        message = print_queue.get()
+        print(message, end="", flush=True)
+        print_queue.task_done()
+        time.sleep(1e-4) # 0.1 ms, I think this needs to be a bit higer on windows (1e-3 ish)
+
+thread = Thread(target=print_worker, daemon=True)
+thread.start()
     
 def aecho(message, end="\n", flush=False):
-    async def _aecho(message, end="\n", flush=False):
-        print(message, end=end, flush=flush)
-    asyncio.create_task(_aecho(message, end=end, flush=flush))
+    def _print(message, end="\n"):
+        i = 0
+        messsage_len = 100
+        _len = len(message)
+        while i < _len:
+            if i + messsage_len < _len:
+                print_queue.put(message[i:i+messsage_len])
+            else:
+                print_queue.put(message[i:] + end)
+            i += messsage_len
+    try:
+        _print(message, end=end)
+    except Exception as e: print(e) # Not good 
 
 def print_json_message(json_str) -> None:
     global streaming_message
@@ -107,18 +131,30 @@ def print_json_message(json_str) -> None:
         aecho(f"Mode: {dict_obj['mode']}\n")
         
         try:
-            message = dict_obj["message"].replace("\\"*3, "\\")
-            if isinstance(message, list):
-                for m in message:
-                    aecho(m)
-            elif isinstance(message, dict):
-                for key in message.keys():
-                    aecho(f"{key}: {message[key]}")
-            else:
+            message = dict_obj["message"]
+            if message[0] == '"' and message[-1] == '"':
+                    message = message[1:-1]
+            message = message.replace("\\n","").replace('\\"','"').replace('\\\\"',"'").replace("\\","")
+            if message[0] == "[":
+                message = message.replace("}{","},{").replace("} {","},{")
+            try:
+                message_obj = json.loads(message)
+                if isinstance(message_obj, list):
+                    aecho("printing list")
+                    for m in message_obj:
+                        aecho(str(m))
+                        
+                elif isinstance(message_obj, dict):
+                    aecho("printing dict")
+                    for key in message_obj.keys():
+                        aecho(f"{key}: {message_obj[key]}")
+            except Exception as e:
+                # 'message' is not json
                 aecho(message)
         except Exception as e:
             aecho(f"Error: Could not parse json.\n{e}\n")
             aecho(dict_obj["message"])
+
         return
 
 
