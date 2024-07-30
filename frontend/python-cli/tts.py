@@ -64,8 +64,11 @@ async def aspeak_chunk(text: str) -> str:
 if not os.path.exists(SPEECH_OUTPUT_DIR):
     os.mkdir(SPEECH_OUTPUT_DIR)
 
+import contextlib
+
 try:
-    mixer.init()
+    with contextlib.redirect_stdout(None): # Suppress pygame output - or its supposed to anyway
+        mixer.init()
     AUDIO_ENABLED = True
 except Exception as e:
     print(f"Error: {e}")

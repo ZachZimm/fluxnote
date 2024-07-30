@@ -32,6 +32,19 @@ def queue_audio(config, message):
     if config["speech_enabled"]:
         tts_generation_queue.put_nowait(message)
 
+def split_into_sentences(message) -> list[str]:
+    sentences = []
+    message = message.strip().replace("\n", " ").replace("...", ",")
+    words = message.split(" ")
+    sentence = ""
+    for word in words:
+        sentence += word + " "
+        if is_full_sentence(sentence):
+            sentences.append(sentence.strip())
+            sentence = ""
+            
+    return sentences
+
 def is_full_sentence(message):
     message = message.strip().replace("\n", " ").replace("...", ",")
 
@@ -351,21 +364,49 @@ async def create_websocket_connection() -> None:
             await websocket.close()
             print_close_message()
 
-async def standalone_tts(text):
+async def standalone_tts(text: str) -> None:
     tts.VOICE = config["speech_voice"]
     output_name = await tts.aspeak_chunk(text)
     await tts.aplay_audio(output_name)
+
+async def tts_queue_watcher():
+    await asyncio.sleep(5)
+    while True:
+        q_length = tts_playback_queue.qsize()
+        if q_length == 0:
+            await asyncio.sleep(10) # This is a bit of a hack, but it works
+            exit() # We could check the duration of the last audio file that was generated
+        await asyncio.sleep(2)
+
+async def standalone_tts_sentences(sentences: list[str]) -> None:
+    for sentence in sentences:
+        tts_generation_queue.put_nowait(sentence)
+    await asyncio.gather(tts_generator(), tts_player(), tts_queue_watcher()) # Need to somehow wait for the tts to finish
     
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        if (len(sys.argv) == 3 and ('--tts' in sys.argv) or ('-t' in sys.argv)):
-            if ('-f' in sys.argv) or ('--file' in sys.argv):
+        if ('--tts' in sys.argv) or ('-t' in sys.argv):
+            
+            if ('-h' in sys.argv) or ('--help' in sys.argv):
+                print("Usage:\npython main.py -t 'text to speak'")
+                print("python main.py --tts 'text to speak'")
+                print("python main.py -t -f 'file_path'")
+                print("python main.py --tts --file 'file_path'")
+            elif ('-f' in sys.argv) or ('--file' in sys.argv):
                 with open(sys.argv[-1], 'r') as f:
                     text = f.read()
                 text = text.strip()
-                asyncio.run(standalone_tts(text))
-            asyncio.run(standalone_tts(sys.argv[-1]))
+                text = fix_prefixes(text)
+                sentences = split_into_sentences(text)
+                # print(sentences)
+                
+                # asyncio.run(standalone_tts_sentences(sentences))
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(standalone_tts_sentences(sentences))
+                # asyncio.run(standalone_tts(text))
+            else:
+                asyncio.run(standalone_tts(sys.argv[-1]))
     
     else:
         loop = asyncio.get_event_loop()
