@@ -1,6 +1,7 @@
 import os
 import time
 import asyncio
+import pydub
 import edge_tts
 import inflect
 from pygame import mixer
@@ -51,12 +52,15 @@ async def aplay_audio(path: str):
     while mixer.get_busy():
         await asyncio.sleep(0.1)
 
-async def aspeak_chunk(text: str) -> str:
+async def aspeak_chunk(text: str, rate: float = 1.0) -> str:
     if AUDIO_ENABLED == False:
         return ""
+    rate = int(rate * 100)
+    rate = '+' if rate > 100 else '-'
+    rate = rate + str(abs(rate - 100)) + '%'
     text = clean_text_for_tts(text)
-    communicate = edge_tts.Communicate(text, VOICE)
-    output_name = str(time.time()) + ".mp3"
+    communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
+    output_name = str(time.time()) + ".wav"
     output_name = SPEECH_OUTPUT_DIR + os.sep + output_name
     await communicate.save(output_name)
     return output_name

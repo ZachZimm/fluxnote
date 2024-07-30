@@ -4,3 +4,4 @@ asyncio
 edge-tts
 pygame
 inflect
+pydub

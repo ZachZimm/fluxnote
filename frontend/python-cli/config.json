@@ -1,6 +1,7 @@
 {
 	"speech_enabled": true,
 	"speech_voice": "en-US-AvaNeural",
+	"speech_rate": 1.0,
 	"hostname": "localhost",
 	"port": 8090
 }

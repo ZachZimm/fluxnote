@@ -176,7 +176,7 @@ def print_json_message(json_str) -> None:
 async def tts_generator():
     while True:
         message = await tts_generation_queue.get()
-        output_name = await tts.aspeak_chunk(message)
+        output_name = await tts.aspeak_chunk(message, rate=config['speech_rate'])
         tts_playback_queue.put_nowait(output_name)
         tts_generation_queue.task_done()
 
@@ -369,7 +369,7 @@ async def create_websocket_connection() -> None:
 
 async def standalone_tts(text: str) -> None:
     tts.VOICE = config["speech_voice"]
-    output_name = await tts.aspeak_chunk(text)
+    output_name = await tts.aspeak_chunk(text, rate=config['speech_rate'])
     await tts.aplay_audio(output_name)
 
 async def tts_queue_watcher():
@@ -401,15 +401,11 @@ if __name__ == "__main__":
                 text = text.strip()
                 text = fix_prefixes(text)
                 sentences = split_into_sentences(text)
-                # print(sentences)
-                
-                # asyncio.run(standalone_tts_sentences(sentences))
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(standalone_tts_sentences(sentences))
-                # asyncio.run(standalone_tts(text))
             else:
                 asyncio.run(standalone_tts(sys.argv[-1]))
     
     else:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         loop.run_until_complete(create_websocket_connection())
