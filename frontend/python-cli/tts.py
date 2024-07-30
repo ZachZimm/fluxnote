@@ -50,16 +50,19 @@ async def aplay_audio(path: str):
         return
     sound = mixer.Sound(path)
     sound.play()
+
+    global LAST_TTS_CLEANUP
+    if time.time() - LAST_TTS_CLEANUP > 3600:
+        for file in os.listdir(SPEECH_OUTPUT_DIR):
+            os.remove(SPEECH_OUTPUT_DIR + os.sep + file)
+        LAST_TTS_CLEANUP = time.time()
     while mixer.get_busy():
         await asyncio.sleep(0.1)
 
 async def aspeak_chunk(text: str, rate: float = 1.0) -> str:
     if AUDIO_ENABLED == False:
         return ""
-    if time.time() - LAST_TTS_CLEANUP > 3600:
-        for file in os.listdir(SPEECH_OUTPUT_DIR):
-            os.remove(SPEECH_OUTPUT_DIR + os.sep + file)
-        LAST_TTS_CLEANUP = time.time()
+
     _rate = int(rate * 100)
     rate = '+' if _rate > 100 else '-'
     rate = rate + str(abs(_rate - 100)) + '%'
