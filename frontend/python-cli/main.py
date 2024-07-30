@@ -5,6 +5,7 @@ import queue
 import aioconsole
 import tts
 import time
+import sys
 from threading import Thread
 
 config_dir = "config.json"
@@ -95,7 +96,7 @@ def print_json_message(json_str) -> None:
         streaming_message += dict_obj["message"]
         streaming_message = fix_prefixes(streaming_message)
         aecho(dict_obj["message"], end="", flush=True)
-        if is_full_sentence(streaming_message):
+        if is_full_sentence(streaming_message): # If a full sentance has been streamed, queue it for tts
             global num_sentences_this_message
             num_sentences_this_message += 1
 
@@ -140,12 +141,10 @@ def print_json_message(json_str) -> None:
             try:
                 message_obj = json.loads(message)
                 if isinstance(message_obj, list):
-                    aecho("printing list")
                     for m in message_obj:
                         aecho(str(m))
                         
                 elif isinstance(message_obj, dict):
-                    aecho("printing dict")
                     for key in message_obj.keys():
                         aecho(f"{key}: {message_obj[key]}")
             except Exception as e:
@@ -352,5 +351,22 @@ async def create_websocket_connection() -> None:
             await websocket.close()
             print_close_message()
 
+async def standalone_tts(text):
+    tts.VOICE = config["speech_voice"]
+    output_name = await tts.aspeak_chunk(text)
+    await tts.aplay_audio(output_name)
+    
+
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(create_websocket_connection())
+    if len(sys.argv) > 1:
+        if (len(sys.argv) == 3 and ('--tts' in sys.argv) or ('-t' in sys.argv)):
+            if ('-f' in sys.argv) or ('--file' in sys.argv):
+                with open(sys.argv[-1], 'r') as f:
+                    text = f.read()
+                text = text.strip()
+                asyncio.run(standalone_tts(text))
+            asyncio.run(standalone_tts(sys.argv[-1]))
+    
+    else:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(create_websocket_connection())
