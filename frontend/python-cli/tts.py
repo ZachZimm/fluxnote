@@ -10,6 +10,7 @@ GOOD_FEMALE_VOICES = ["en-US-AvaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural
 VOICE = "en-US-AvaNeural"
 OUTPUT_DIR = "test_output"
 SPEECH_OUTPUT_DIR = "speech"
+LAST_TTS_CLEANUP = 0
 
 async def atest_voices(text) -> None:
     if not os.path.exists(OUTPUT_DIR):
@@ -55,9 +56,13 @@ async def aplay_audio(path: str):
 async def aspeak_chunk(text: str, rate: float = 1.0) -> str:
     if AUDIO_ENABLED == False:
         return ""
-    rate = int(rate * 100)
-    rate = '+' if rate > 100 else '-'
-    rate = rate + str(abs(rate - 100)) + '%'
+    if time.time() - LAST_TTS_CLEANUP > 3600:
+        for file in os.listdir(SPEECH_OUTPUT_DIR):
+            os.remove(SPEECH_OUTPUT_DIR + os.sep + file)
+        LAST_TTS_CLEANUP = time.time()
+    _rate = int(rate * 100)
+    rate = '+' if _rate > 100 else '-'
+    rate = rate + str(abs(_rate - 100)) + '%'
     text = clean_text_for_tts(text)
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
     output_name = str(time.time()) + ".wav"
