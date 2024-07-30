@@ -114,7 +114,6 @@ class langchain_interface():
             self.db["history"].insert_one(history)
 
 
-    
     def add_chat_character(self, character_name: str, character_bio) -> None:
         self.system_prompts[character_name] = character_bio
         update = {"$set": {f"system_prompts.{character_name}": character_bio}}
@@ -168,7 +167,7 @@ class langchain_interface():
         result = self.db["history"].find_one({"userid": self.userid})
         return json.dumps(result["history"])
  
-    def get_config_str(self, _indent: int = 4) -> str:
+    def get_config_str(self, _indent: int = 0) -> str:
         return json.dumps(self.get_config(), indent=_indent)
     
     def get_config(self) -> dict:

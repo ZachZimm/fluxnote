@@ -4,6 +4,7 @@ from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
 from wiki_interface import WikiInterface
 import os
+import sys
 import json
 import asyncio
 
@@ -11,6 +12,7 @@ app = FastAPI()
 loop = asyncio.new_event_loop()
 welcome_message = "Enter 'options' to see available text files to summarize or 'exit' to quit."
 wiki_results = {}
+_debug = False
 
 # TODO break these all out into a separate file
 
@@ -114,14 +116,19 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     elif file_index is not None and file_index.isdigit():
         available_files, _ = get_available_files(websocket, lc_interface, file_path)
         file_path = available_files[int(file_index) - 1]
+        print(f"Available files: {available_files}")
     if file_index and not file_index.isdigit():
         return "File index must be a digit.", "summary error"
 
-    if not os.path.exists(file_path):
-        return "File not found.", "summary error"
-
-    with open(file_path, "r") as file:
-        text = file.read()
+    # if not os.path.exists(file_path):
+        # return "File not found.", "summary error"
+    print(f"File path: {file_path}")
+    text = ""
+    try :
+        with open(file_path, "r") as file:
+            text = file.read()
+    except:
+        return "Error reading file.", "summary error"
     
     await send_ws_message(websocket, "Summarizing text from " + file_path.split('\\')[-1], mode="status")
 
@@ -192,15 +199,21 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
         # await send_ws_message(websocket, f"Content downloaded to {filepath}", mode="wiki")
     return json.dumps(return_object), "wiki"
 
+def get_available_files_str(websocket, lc_interface, help=False) -> tuple[str, str]:
+    available_files, status = get_available_files(websocket, lc_interface, help)
+    if help == True:
+        return available_files[0], status 
+    return json.dumps(available_files), "status"
+
 def get_available_files(websocket, lc_interface, help = False) -> tuple[list, str]:
     # This will not be a list of files in a path in the future, but a database query that returns a list of files associated with a user and their ids
     # probably filterable as well
     if help == True:
-        return "Get a list of available text files in the path passed in.", "help"
+        return ["Get a list of available text files in the path passed in."], "help"
     path = lc_interface.get_notes_dir()
     path = path.strip().replace("..", "") # Shouldn't be needed anymore
     files_in_dir = os.listdir(path) # Files in dirs will be replaced with a database query
-    available_files = [f"{path}/{file}" for file in files_in_dir if file.endswith(".txt")]
+    available_files = [f"{path}{file}" for file in files_in_dir if file.endswith(".txt")]
     return available_files, "status"
 
 def get_functions(websocket, lc_interface, help=False) -> tuple[str, str]:
@@ -238,7 +251,7 @@ available_request_functions = {
     "wiki_results": get_wiki_results,
     "options": get_functions,
     "help": get_help,
-    "list": get_available_files,
+    "list": get_available_files_str,
     "chat_history": get_chat_history,
     "clear_history": clear_chat_history,
     "quit": end_session,
@@ -269,6 +282,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             {"func": "summmarize", "file_index": "1"}
             {"func": "options", "message": "options"}
             """
+            if _debug:
+                print(data)
             if data["func"] == "quit":
                 # I don't think I need to do this if the client closes the connection
                 await websocket.close()
@@ -298,6 +313,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
 
 if __name__ == "__main__":
+    print(json.dumps(sys.argv))
+    if '--debug' in json.dumps(sys.argv):
+        print("Debug mode enabled.")
+        _debug = True
+
     uvicorn.run(app, host="0.0.0.0", port=8090)
 
 # TODO

@@ -17,7 +17,8 @@ def print_summary(summary):
     print(f"Summary has {num_ideas} ideas.")
 
     for idea in range(num_ideas):
-        print(f"{idea}: {summary[idea]['idea']}")
+        # print(f"{idea}: {summary[idea]['idea']}")
+        print_queue.put(f"{idea}: {summary[idea]['idea']}\n")
         i += 1
 
 streaming_message = ""
@@ -154,8 +155,10 @@ def print_json_message(json_str) -> None:
             try:
                 message_obj = json.loads(message)
                 if isinstance(message_obj, list):
+                    index = 0
                     for m in message_obj:
-                        aecho(str(m))
+                        index += 1
+                        aecho(f"{str(index)}: {str(m)}")
                         
                 elif isinstance(message_obj, dict):
                     for key in message_obj.keys():
@@ -381,8 +384,7 @@ async def tts_queue_watcher():
 async def standalone_tts_sentences(sentences: list[str]) -> None:
     for sentence in sentences:
         tts_generation_queue.put_nowait(sentence)
-    await asyncio.gather(tts_generator(), tts_player(), tts_queue_watcher()) # Need to somehow wait for the tts to finish
-    
+    await asyncio.gather(tts_generator(), tts_player(), tts_queue_watcher())    
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
