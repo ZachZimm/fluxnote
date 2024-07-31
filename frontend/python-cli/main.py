@@ -158,7 +158,7 @@ def print_json_message(json_str) -> None:
                     index = 0
                     for m in message_obj:
                         index += 1
-                        aecho(f"{str(index)}: {str(m)}")
+                        aecho(f"{str(index)}:\t{str(m)}")
                         
                 elif isinstance(message_obj, dict):
                     for key in message_obj.keys():

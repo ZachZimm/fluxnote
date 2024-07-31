@@ -6,7 +6,7 @@ import edge_tts
 import inflect
 from pygame import mixer
 
-GOOD_FEMALE_VOICES = ["en-US-AvaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural", "en-IN-NeerjaExpressiveNeural", "en-IN-NeerjaNeural", "en-US-EmmaNeural", "en-US-MichelleNeural", "en-ZA-LeahNeural", "en-SG-LunaNeural", "el-GR-AthinaNeural", "de-DE-KatjaNeural", "fr-FR-VivienneMultilingualNeural", "hi-IN-SwaraNeural", "ml-IN-SobhanaNeural", "ps-AF-LatifaNeural", "zh-CN-liaoning-XiaobeiNeural", "zh-CN-shaanxi-XiaoniNeural", "zh-CN-XiaoxiaoNeural","zh-TW-HsiaoChenNeural"] # en-SG-LunaNeural and el-GR-AthinaNeural are questionable
+GOOD_FEMALE_VOICES = ["en-US-AvaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural", "en-IN-NeerjaExpressiveNeural", "en-IN-NeerjaNeural", "en-US-EmmaNeural", "en-US-MichelleNeural", "en-ZA-LeahNeural", "en-SG-LunaNeural", "el-GR-AthinaNeural", "de-DE-KatjaNeural", "fr-FR-VivienneMultilingualNeural", "hi-IN-SwaraNeural", "ml-IN-SobhanaNeural", "ps-AF-LatifaNeural", "zh-CN-liaoning-XiaobeiNeural", "zh-CN-shaanxi-XiaoniNeural", "zh-CN-XiaoxiaoNeural","zh-TW-HsiaoChenNeural"] # en-SG-LunaNeural is questionable
 VOICE = "en-US-AvaNeural"
 OUTPUT_DIR = "test_output"
 SPEECH_OUTPUT_DIR = "speech"
@@ -54,7 +54,9 @@ async def aplay_audio(path: str):
     global LAST_TTS_CLEANUP
     if time.time() - LAST_TTS_CLEANUP > 3600:
         for file in os.listdir(SPEECH_OUTPUT_DIR):
-            os.remove(SPEECH_OUTPUT_DIR + os.sep + file)
+            file_name = file.split(".")[0]
+            if time.time() - float(file_name) > 3600:
+                os.remove(SPEECH_OUTPUT_DIR + os.sep + file)
         LAST_TTS_CLEANUP = time.time()
     while mixer.get_busy():
         await asyncio.sleep(0.1)
@@ -80,7 +82,7 @@ import contextlib
 
 try:
     with contextlib.redirect_stdout(None): # Suppress pygame output - or its supposed to anyway
-        mixer.init()
+        mixer.init() # Not sure why I can't get anything to suppress the output
     AUDIO_ENABLED = True
 except Exception as e:
     print(f"Error: {e}")
