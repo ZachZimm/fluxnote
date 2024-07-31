@@ -54,7 +54,7 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
 
         # Now we need to ensure that the keys and values are enclosed in double quotes
         # First single quote replacement pass, not totally sure what it does anymore, it tried to do eveything
-        llm_output = llm_output.replace(': \'', ': "').replace('\'}', '"}').replace("':", '":')#.replace("',", '",')
+        llm_output = llm_output.replace(': \'', ': "').replace('\'}', '"}').replace("':", '":').replace(":'", ':"')
         # Replace single quotes around inner keys that were missed by the previous step
         llm_output = llm_output.replace('{\'', '{"').replace('\':', '":')#.replace('\',', '",')
         # Replace single quotes around a string with double quotes

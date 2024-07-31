@@ -1,7 +1,8 @@
 import json
 import os
 import time
-from langchain_openai import ChatOpenAI
+import asyncio
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
@@ -60,6 +61,7 @@ class langchain_interface():
     system_prompts = {}
     permanent_characters = []
     model = None
+    embed_model = None
     headers = { "Content-Type": "application/json" }
     url = ""
     history = []
@@ -90,7 +92,6 @@ class langchain_interface():
         update = {"$setOnInsert": document} # This will only insert the document if it doesn't exist
         result = self.db["config"].update_one(filter, update, upsert=True)
 
-        
         # if there is no history in the database, create it
         if not self.db["history"].find_one({"userid": self.userid}): 
             history = {
@@ -135,7 +136,6 @@ class langchain_interface():
 
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))
-        # update the history in the database
         update = {"$set": {"history": serialize_history(history)}}
         result = self.db["history"].update_one({"userid": self.userid}, update)
         return history
@@ -196,6 +196,20 @@ class langchain_interface():
         chain = self.model | parser 
         return chain.astream(history)
 
+    def langchain_embed_sentence(self, sentence: str) -> list[float]:
+        embeds = []
+        try:
+            if self.get_config()['use_openai']:
+                self.embed_model = OpenAIEmbeddings(api_key=self.secret_config_json['openai_api_key'])
+            else:
+                self.embed_model = OpenAIEmbeddings(base_url=self.get_config()['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key']) # Assuming your OpenAI compatible api has an endpoint for embeddings
+            embeds = self.embed_model.embed_query(sentence)
+        except Exception as e:
+            print("Exception in langchain_embed_sentence")
+            print(f"Error: {e}")
+            
+        return embeds 
+
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.5) -> tuple[list, Summary]:
         time_start = time.time()
         config = self.get_config()
@@ -212,10 +226,10 @@ class langchain_interface():
                 temperature=temperature,
                 )
         parser = StrOutputParser()
-        chain = self.model | parser
+        chain = self.model | parser # Build the pipeline
         assistant_message = ''
         print('summarizing...')
-        assistant_message = await chain.ainvoke(_history)
+        assistant_message = await chain.ainvoke(_history) # Run the pipeline
 
         # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
         summary_result = parse_llm_output(Summary, assistant_message)
@@ -223,9 +237,17 @@ class langchain_interface():
             print("Exiting...")
             return history, None
         summary_obj = summary_result["object"]
+
+        self.append_history(str(summary_obj.model_dump()), history) # do this before we add the embeddings
+        for i in range(len(summary_obj.summary)): 
+            embeds: list[float] = self.langchain_embed_sentence(summary_obj.summary[i].idea)
+            # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
+            summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
+            await asyncio.sleep(1e-4) # Hack to prevent blocking 
+
         runtime = time.time() - time_start
         print(f"Runtime: {round(runtime, 2)} seconds")
         # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
         # history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
-        self.append_history(str(summary_obj.model_dump()), history)
+        
         return history, summary_obj
