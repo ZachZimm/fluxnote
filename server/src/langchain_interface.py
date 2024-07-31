@@ -99,22 +99,6 @@ class langchain_interface():
             }
             self.db["history"].insert_one(history)
         
-        # This all needs to come from the database rather than the config files
-
-        if self.config_json['use_openai']:
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'])
-        else:
-            self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'])
-        self.url = f"{self.config_json['llm_base_url']}/v1/chat/completions"
-        self.config_json["notes_directory"] = self.notes_dir
-        self.chat_character = self.config_json['chat_character'].replace(" ", "-")
-
-        self.notes_dir = self.config_json['notes_directory']
-        if self.notes_dir[-1] != "/":
-            self.notes_dir += "/"
-
-        # end section
-
 
     def add_chat_character(self, character_name: str, character_bio) -> None:
         self.system_prompts[character_name] = character_bio
@@ -176,7 +160,6 @@ class langchain_interface():
         return result["config"]
 
     def update_config(self, new_config_key: str, new_config_value: str) -> bool:
-        self.config_json[new_config_key] = new_config_value
         update = {"$set": {f"config.{new_config_key}": new_config_value}}
         result = self.db["config"].update_one({"userid": self.userid}, update)
 
@@ -194,12 +177,16 @@ class langchain_interface():
         return "Disabled for security"
 
     async def stream_langchain_chat_loop_async_generator(self, history: list = [], max_tokens: int = 600, temperature: float = 0.7) -> StreamingStdOutCallbackHandler:
-        self.append_history(self.system_prompts[self.chat_character], history, is_human=False)
+        config = self.get_config()
+        system_prompts = self.get_chat_characters()
+        character_prompt = system_prompts[config['chat_character']]
+        _history = history
+        history.append(SystemMessage(content=character_prompt))
 
-        if self.config_json['use_openai']:
+        if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=600, temperature=0.7)
         else: 
-            self.model = ChatOpenAI(base_url=self.config_json['llm_base_url']+'/v1',
+            self.model = ChatOpenAI(base_url=config['llm_base_url']+'/v1',
                                 api_key=self.secret_config_json['openai_api_key'],
                                 max_tokens=max_tokens,
                                 temperature=temperature
@@ -209,16 +196,18 @@ class langchain_interface():
         chain = self.model | parser 
         return chain.astream(history)
 
-    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6) -> tuple[list, Summary]:
+    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.5) -> tuple[list, Summary]:
         time_start = time.time()
+        config = self.get_config()
+        system_prompts = self.get_chat_characters()
         _history = [] 
-        _history.append(SystemMessage(content=self.system_prompts["Document-Summarizer"]))
+        _history.append(SystemMessage(content=system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
-        if self.config_json['use_openai']:
+        if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature)
         else: 
             self.model = ChatOpenAI(
-                base_url=self.config_json['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
                 max_tokens=max_tokens,
                 temperature=temperature,
                 )
