@@ -72,7 +72,7 @@ class langchain_interface():
 
     def __init__(self, userid: str = ""):
         self.userid = userid
-        self.config_json = read_config(self.config_path)
+        self.config_json = read_config(self.config_path) # This should only contain default values now
         self.secret_config_json = read_config(self.secret_config_path)
         self.system_prompts = read_config(self.system_prompts_path)
         self.permanent_characters = self.system_prompts.keys()
@@ -148,7 +148,7 @@ class langchain_interface():
         result = self.db["history"].find_one({"userid": self.userid})
         return json.loads(result["history"])
     
-    def get_history_str(self, _indent: int = 4) -> str:
+    def get_history_str(self, _indent: int = 0) -> str:
         result = self.db["history"].find_one({"userid": self.userid})
         return json.dumps(result["history"])
  
@@ -167,7 +167,7 @@ class langchain_interface():
             self.chat_character = new_config_value
         return True
     
-    def get_secret_config_str(self, _indent: int = 4) -> str:
+    def get_secret_config_str(self, _indent: int = ) -> str:
         # return json.dumps(self.secret_config_json, indent=_indent)
         # This is probably not a good idea
         return "Disabled for security"
@@ -196,13 +196,14 @@ class langchain_interface():
         chain = self.model | parser 
         return chain.astream(history)
 
-    def langchain_embed_sentence(self, sentence: str) -> list[float]:
+    def langchain_embed_sentence(self, sentence: str, config: dict = None) -> list[float]:
+        if config is None: config = self.get_config()
         embeds = []
         try:
-            if self.get_config()['use_openai']:
+            if config['use_openai']:
                 self.embed_model = OpenAIEmbeddings(api_key=self.secret_config_json['openai_api_key'])
             else:
-                self.embed_model = OpenAIEmbeddings(base_url=self.get_config()['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key']) # Assuming your OpenAI compatible api has an endpoint for embeddings
+                self.embed_model = OpenAIEmbeddings(base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key']) # Assuming your OpenAI compatible api has an endpoint for embeddings
             embeds = self.embed_model.embed_query(sentence)
         except Exception as e:
             print("Exception in langchain_embed_sentence")
@@ -240,7 +241,7 @@ class langchain_interface():
 
         self.append_history(str(summary_obj.model_dump()), history) # do this before we add the embeddings
         for i in range(len(summary_obj.summary)): 
-            embeds: list[float] = self.langchain_embed_sentence(summary_obj.summary[i].idea)
+            embeds: list[float] = self.langchain_embed_sentence(summary_obj.summary[i].idea, config=config)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
             summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
             await asyncio.sleep(1e-4) # Hack to prevent blocking 
