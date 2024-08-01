@@ -167,7 +167,7 @@ class langchain_interface():
             self.chat_character = new_config_value
         return True
     
-    def get_secret_config_str(self, _indent: int = ) -> str:
+    def get_secret_config_str(self, _indent: int = 0) -> str:
         # return json.dumps(self.secret_config_json, indent=_indent)
         # This is probably not a good idea
         return "Disabled for security"

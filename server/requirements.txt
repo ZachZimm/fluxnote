@@ -5,3 +5,4 @@ pymediawiki
 fastapi
 uvicorn
 pymongo
+psutil

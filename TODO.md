@@ -2,7 +2,7 @@
     - I may want to abstract out the model from the langchain_interface
         - I am thinking of a Model object that takes a config obj and returns a model
 
-- [ ] Some kind of monitoring so that the client can tell if the server is busy
+- [x] Some kind of monitoring so that the client can tell if the server is busy
     - Should also start testing with multiple users
         - User string needs to be configurable first
 - [ ] Refactor api_server.py

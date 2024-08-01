@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
 from wiki_interface import WikiInterface
-import fluxnote.server.src.server_info as server_info
+import server_info
 import os
 import sys
 import json
