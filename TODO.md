@@ -20,7 +20,77 @@
         - This may be a 2 step process where the first checks whether a re-write is nessecary and the second performs the rewrite
     - This seems like a very heavy compute task (lots of input processing of full documents)
         - This will ideally run in the background
+- [ ] Add a reworked version of the "document-parser" character called "note-parser" or something
+    - this system prompt will specify that the notes are created by a user and will be treated slightly differently
+    - The associated routine should allow for some options (or just metadata somehow specified, possibly just as text in the note file). Most of this should be added to the doc parsing routine too.
+        - These options will be used to guide the summary generation
+        - not sure about the types for these options yet
+        - opt: completeness
+            - whether information should be filled in / added
+        - opt: reliability
+            - should the llm doubt the claims in the document or treat them in a particular way?
+        - opt: context
+            - additional context that should be taken into account when generating a summar of this note
 
 - [ ] Implement a smart model / cheap model dichotomy which allows the user to specify a model for a task
-
 - [ ] Implement a vector database
+- [ ] Learn about knowledge graphs proper
+- [ ] Implement a graph database
+    - There will be at least 2 databases
+        - Summary database
+            - Nodes are summaries / condensations
+            - Edges are the strengh of their connection
+                - Not sure if embeddings will be sufficient here due to the potential length
+        - Idea database
+            - Nodes are ideas
+            - Edges are the similarity of their embeddings
+                - While implementing this seems pretty reasonable, I wonder how much compute it will involve to find all of those embedding similarities. The number of ideas in a knowledge base could grow rather large and this involves computing vector similarities for every single combination of ideas.
+                - This may be more feasable on a per-document level, and new graphs could be created upon instruction, but not automatically.
+                - Or, I may be overestimating the amount of compute involved in say 30,000 similarity computations (wild guess of a number). We're currently using 768 dimension embeddings. 758 x 30,000 = 23 M. Multiply that by the number of ideas in the summary (15-40) and that doesn't look so terrible. I am not sure if `embedding_size x num_embeddings` represents the computation time very well though.
+                - Maybe this would be a good time to learn about using C / C++ in python. Very likely though, the most obvious way of doing it (numpy) will already drop into C / C++. 
+
+- [ ] FEATURE GOAL: Have a conversation with the LLM with user-specified context.
+    - Not sure how this context will be defined
+        - It may just be a list of tags/categories at first
+- [ ] Listen to the male voice options and determine which are good
+- [ ] PDF parsing routine
+    - Just an extension of the document / note parsing routines that is PDF compatible
+    - OCR may be nessecary for some PDFs, and when it is recognition will probably be bad. At the very least the user should be warned.
+- [ ] Implement a server-side routine to fetch news from specified feeds
+    - this should be easily disabled / enabled with a bool in the config file
+    - Server-side because multiple users may want the same news sources and this is likely to take the most disk space already as will work automatically in the background.
+    - The list of feeds can be updated by authorized users
+    - Each feed will have its own critera for what is relevant (as I noticed there can be a lot of junk in some news RSS feeds, or financial feeds will anncounce earnings for EVERY company they can, which we may not be interested in)
+    - The news database should probably not be replicated for each user, but should be treated very similarly to notes or other documents.
+    - Automatically determine whether this particular piece of news is valuable / satisfies criteria that has been configured,
+        - This will most likely be with the LLM. Feed it the critera, as well as the news item and let it decide.
+    - If the news item is relevant, then automatically summarize it, categorize it in the database, and create vector relationships
+    - News items may need their own model, as a timestamp is important so that the LLM can easily be told X happened before Y.
+- [ ] Implement an alternative TTS option
+    - the `edge_tts` package makes an API request to a Bing url. Their TTS processing is really good, fast, and free. Those 3 things don't usually go together so once they realize people have reverse engineered their API and they also start caring about how much that compute costs they might restrict it.
+    - There are a number of other TTS options, both paid and locally hostable
+        -Paid
+            - OpenAI
+            - ElevenLabs
+            - Coqi XTTS
+            - probably many more
+        - Hostable
+            - OS Native solutions
+                - maybe the next macOS will change this but based on my testing the accessible macOS speech API produced pretty terribe (outdated) TTS. The OS does have good TTS though if you do it as an end user. There may be a newer API / command for macOS TTS
+            - Coqi XTTS
+                - Liscence forbids commercial use, although as a fully self hosted option it's pretty good
+            - MARS TTS
+                - The promo video was impressive but the huggingface spaces demo I tried was not. It may still be worth looking into though.
+- [ ] Implement an Image to Text routine
+    - Like the other ML routines, this will have multiple providers
+        - OpenAI package already supports this
+        - Self hosting could be a challenge, I have not really tried local Image2text
+    - So that images (charts and otherwise) can be used as information for our knowledge base
+    - Save some metadata as well, at least a title. This can be LLM-suggested
+    - Option for user-specified context while parsing
+        - this would help with ambiguity, and would 
+- [ ] Powerpoint to text
+    - This may be a combination of parsing visible text from the slides, as well as using Image2Text
+    - Powerpoints are often designed such that there only small, incremental changes between slides (one new bullet point at a time) and this is not ideal for parsing. That will have to be addressed somehow.
+        - diffs?
+    

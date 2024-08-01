@@ -349,8 +349,8 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         if 'help' in user_command:
             message_object['help'] = True
         
-        if should_continue: continue
-        else: await websocket.send(json.dumps(message_object))
+        if should_continue: continue # Do not send because the interaction was fully client side
+        else: await websocket.send(json.dumps(message_object)) # Send the function call to the server
 
 async def create_websocket_connection() -> None:
     def print_close_message():

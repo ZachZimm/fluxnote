@@ -285,6 +285,9 @@ async def send_ws_message(websocket: WebSocket, message: str, mode: str = "defau
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None: 
+    """
+    This function is called when a websocket connection is established. Within the loop, the value of the 'func' key in the JSON object is used to determine which function to call. The function is then called with the arguments provided in the JSON object. The function returns a message and a mode. The message is sent back to the client as a JSON object and the mode is used to determine how the message is displayed on the client side.
+    """
     try:
         await websocket.accept()
         await send_ws_message(websocket, welcome_message, mode="welcome")
@@ -316,7 +319,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             # Call the function with the provided arguments
             func = available_request_functions[func_name]
             kwargs = {k: v for k, v in data.items() if k != "func"}
-            async_functions = ["chat", "summarize"]
+            async_functions = ["chat", "summarize"] # Unfortunately some of the functions need to be handled differently. This is a temporary solution and will be refactored.
             wiki_functions = ["wiki_search", "wiki_results", "wiki"]
             if func_name in async_functions:
                 response_message, response_mode = await func(websocket, lc_interface, **kwargs)
