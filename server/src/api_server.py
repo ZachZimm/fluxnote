@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
 from wiki_interface import WikiInterface
+import fluxnote.server.src.server_info as server_info
 import os
 import sys
 import json
@@ -216,6 +217,15 @@ def get_available_files(websocket, lc_interface, help = False) -> tuple[list, st
     available_files = [f"{path}{file}" for file in files_in_dir if file.endswith(".txt")]
     return available_files, "status"
 
+def get_server_status(websocket, lc_interface, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get the server status.", "help"
+    gpu_info: dict = server_info.get_gpu_info()
+    cpu_info: dict = server_info.get_cpu_info()
+    disk_info: dict = server_info.get_disk_info()
+
+    return json.dumps({"gpu_info": gpu_info, "cpu_info": cpu_info, "disk_info": disk_info}), "status"
+
 def get_functions(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Get a list of available backend functions.", "help"
@@ -243,6 +253,8 @@ available_request_functions = {
     "get_configuration": get_configuration,
     "get_configuration_options": get_configuration_options,
     "get_secret_configuration": get_secret_configuration,
+    "get_server_status": get_server_status,
+    "server_status": get_server_status,
     "set_secret_configuration": set_secret_configuration,
     "configure": set_configuration,
     "summarize": summarize,
