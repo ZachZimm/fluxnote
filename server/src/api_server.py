@@ -231,6 +231,13 @@ def get_functions(websocket, lc_interface, help=False) -> tuple[str, str]:
         return "Get a list of available backend functions.", "help"
     return json.dumps(list(available_request_functions.keys())), "status"
 
+def login(websocket, lc_interface, username, help=False) -> tuple[str, str]:
+    #TODO this needs some kind of authentication
+    if help == True:
+        return "Login to the server.", "help"
+    lc_interface.login(username)
+    return f"Logged in as {username}.", "status"
+
 def end_session(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "End the current session.", "help"
@@ -245,6 +252,7 @@ def get_help(websocket, lc_interface, help=False) -> tuple[str, str]:
 
 # Dictionary to map function names to functions
 available_request_functions = {
+    "login": login,
     "chat": chat,
     "add_chat_character": add_chat_chatacter,
     "get_chat_characters": get_chat_characters,
@@ -280,8 +288,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     try:
         await websocket.accept()
         await send_ws_message(websocket, welcome_message, mode="welcome")
-        userid = "test_user"
-        lc_interface = langchain_interface(userid)
+        lc_interface = langchain_interface()
         wiki = WikiInterface()
         while True:
             data = await websocket.receive_json()

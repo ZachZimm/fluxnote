@@ -6,7 +6,14 @@
     - Should also start testing with multiple users
         - User string needs to be configurable first
 - [ ] Refactor api_server.py
+- [ ] Write a function to read existing documents into the chat history
+    - similarly, the ability to read existing summaries, or ideas
+        - perhaps those ideas could be fetched from the vector db an n would represent the breadth of the search
+            - although for consistency we would want some way of finding the density of information on that topic stored in the summary - because it may not be uniform across topics.
+            - So n shoud be `n = n * information_density`
 - [ ] Save idea vectors to mongodb
+- [ ] Save wiki articles to mongodb
+    - title, summary, full text, and retrieval date
 - [ ] Write a routine to check / rewrite individual ideas
     - This should give the LLM both the original document, as well as the idea
     - The LLM will be instructed to evaluate the idea without the context of the others and re-write the idea if it is not individually meaningful.

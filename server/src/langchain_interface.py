@@ -50,6 +50,7 @@ def deserialize_history(history_str: str) -> list: # This should be in the utils
 
 class langchain_interface():
     userid = "-1"
+    logged_in = False
     chat_character = "Sherlock-Holmes" # These are all defaults
     config_path = "src/config.json"
     secret_config_path = "src/secret_config.json"
@@ -70,7 +71,7 @@ class langchain_interface():
     mongo_client = None
     db = None
 
-    def __init__(self, userid: str = ""):
+    def login(self, userid: str = ""):
         self.userid = userid
         self.config_json = read_config(self.config_path) # This should only contain default values now
         self.secret_config_json = read_config(self.secret_config_path)
@@ -99,7 +100,7 @@ class langchain_interface():
                 "history": serialize_history(self.history)
             }
             self.db["history"].insert_one(history)
-        
+        self.logged_in = True
 
     def add_chat_character(self, character_name: str, character_bio) -> None:
         self.system_prompts[character_name] = character_bio
@@ -180,8 +181,8 @@ class langchain_interface():
         config = self.get_config()
         system_prompts = self.get_chat_characters()
         character_prompt = system_prompts[config['chat_character']]
-        _history = history
-        history.append(SystemMessage(content=character_prompt))
+        _history = history.copy()
+        _history.append(SystemMessage(content=character_prompt))
 
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=600, temperature=0.7)
@@ -194,7 +195,7 @@ class langchain_interface():
 
         parser = StrOutputParser()
         chain = self.model | parser 
-        return chain.astream(history)
+        return chain.astream(_history)
 
     def langchain_embed_sentence(self, sentence: str, config: dict = None) -> list[float]:
         if config is None: config = self.get_config()

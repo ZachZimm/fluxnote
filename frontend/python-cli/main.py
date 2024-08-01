@@ -198,6 +198,8 @@ async def close_and_exit(websocket) -> None:
 # I think it should be in a seperate file and further refactored
 async def send_messages(websocket) -> None: # consider checking for success and returning a boolean
     tts.VOICE = config["speech_voice"]
+    await websocket.send(json.dumps({"func": "login", "username": config["username"]})) # 'log in' - Set the userid on the server side
+
     while True:
         message_object = {}
         should_continue = False
@@ -360,6 +362,7 @@ async def create_websocket_connection() -> None:
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
         try:
+            
             await asyncio.gather(listen_for_messages(websocket), send_messages(websocket), tts_generator(), tts_player())
         except websockets.exceptions.ConnectionClosedOK: print_close_message()
         except websockets.exceptions.ConnectionClosedError: print_close_message()

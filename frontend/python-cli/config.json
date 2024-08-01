@@ -1,4 +1,5 @@
 {
+	"username": "test_user",
 	"speech_enabled": true,
 	"speech_voice": "en-US-AvaNeural",
 	"speech_rate": 1.1,
