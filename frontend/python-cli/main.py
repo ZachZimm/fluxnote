@@ -76,7 +76,7 @@ thread.start()
 def aecho(message, end="\n", flush=False):
     def _print(message, end="\n"):
         i = 0
-        messsage_len = 100
+        messsage_len = 50
         _len = len(message)
         while i < _len:
             if i + messsage_len < _len:
@@ -125,9 +125,12 @@ def print_json_message(json_str) -> None:
         if "error" in dict_obj["mode"]:
             aecho(f"Error: {dict_obj['message']}")
             return
-        if '{' == dict_obj["message"][0]:
+        if '[' == dict_obj["message"][0]: # Deprecated
             dict_obj = json.loads(dict_obj["message"])
             print_summary(dict_obj["summary"])
+            return
+        else:
+            aecho(f"Summary: {dict_obj['message']}")
             return
     elif "wiki search results" in dict_obj["mode"]:
         list_obj = json.loads(dict_obj["message"])
@@ -304,13 +307,16 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         elif ('set' in user_command) and ('char' in user_command):
             message_object['func'] = "configure"
             character_name = await aioconsole.ainput("Enter the character name: ")
-            message_object['chat_character'] = character_name
+            message_object["configuration_field"] = "chat_character"
+            message_object["configuration_value"] = character_name
 
         elif ('set' in user_command) and ('config' in user_command):
-            message_object['func'] = ""
-            configuration = await aioconsole.ainput("Enter the configuration field: ")
+            message_object['func'] = "configure"
+            configuration_field = await aioconsole.ainput("Enter the configuration field: ")
             configuration_value = await aioconsole.ainput("Enter the configuration value: ")
-            message_object[configuration] = configuration_value
+            message_object["configuration_field"] = configuration_field
+            message_object["configuration_value"] = configuration_value
+
         elif ('set' in user_command) and ('voice' in user_command):
             print("Available voices:")
             voices = tts.GOOD_FEMALE_VOICES

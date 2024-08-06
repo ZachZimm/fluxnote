@@ -3,8 +3,6 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from langchain_interface import langchain_interface
 from wiki_interface import WikiInterface
-import server_info
-import os
 import sys
 import json
 import asyncio

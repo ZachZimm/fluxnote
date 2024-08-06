@@ -185,7 +185,8 @@ class langchain_interface():
         _history.append(SystemMessage(content=character_prompt))
 
         if config['use_openai']:
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=600, temperature=0.7)
+            openai_model = "gpt-4o-mini"
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model)
         else: 
             self.model = ChatOpenAI(base_url=config['llm_base_url']+'/v1',
                                 api_key=self.secret_config_json['openai_api_key'],
@@ -219,8 +220,10 @@ class langchain_interface():
         _history = [] 
         _history.append(SystemMessage(content=system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
+
+        openai_model = "gpt-4o-mini"
         if config['use_openai']:
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature)
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else: 
             self.model = ChatOpenAI(
                 base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
@@ -240,7 +243,6 @@ class langchain_interface():
             return history, None
         summary_obj = summary_result["object"]
 
-        self.append_history(str(summary_obj.model_dump()), history) # do this before we add the embeddings
         for i in range(len(summary_obj.summary)): 
             embeds: list[float] = self.langchain_embed_sentence(summary_obj.summary[i].idea, config=config)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
@@ -249,7 +251,4 @@ class langchain_interface():
 
         runtime = time.time() - time_start
         print(f"Runtime: {round(runtime, 2)} seconds")
-        # history.append(HumanMessage(content=text)) # Not sure which of these to add to the history
-        # history.append(AIMessage(content=str(summary_obj.model_dump()))) # It many not matter in the end
-        
         return history, summary_obj

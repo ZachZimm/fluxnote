@@ -59,6 +59,7 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
         llm_output = llm_output.replace('{\'', '{"').replace('\':', '":')#.replace('\',', '",')
         # Replace single quotes around a string with double quotes
         llm_output = llm_output.replace('": \'', '": "').replace('\'}', '"}')
+        llm_output = llm_output.replace("' {", '"{')
         
         llm_output = llm_output.replace("' s", "'s") # Fix possessive 's - not sure why this is necessary
         expected_keys = get_all_keys(model_class.model_json_schema())

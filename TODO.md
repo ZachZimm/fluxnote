@@ -1,11 +1,11 @@
-- [ ] Ensure that other model providers work (openai, deepseek)
+- [x] Ensure that other model providers work (openai, deepseek)
     - I may want to abstract out the model from the langchain_interface
         - I am thinking of a Model object that takes a config obj and returns a model
 
 - [x] Some kind of monitoring so that the client can tell if the server is busy
     - Should also start testing with multiple users
         - User string needs to be configurable first
-- [ ] Refactor api_server.py
+- [x] Refactor api_server.py
 - [ ] Write a function to read existing documents into the chat history
     - similarly, the ability to read existing summaries, or ideas
         - perhaps those ideas could be fetched from the vector db an n would represent the breadth of the search
@@ -31,6 +31,9 @@
             - should the llm doubt the claims in the document or treat them in a particular way?
         - opt: context
             - additional context that should be taken into account when generating a summar of this note
+    
+- [ ] Add a server-side command history
+    - Hopefully it will be simple enough to implement up-arrow behaviour
 
 - [ ] Implement a smart model / cheap model dichotomy which allows the user to specify a model for a task
 - [ ] Implement a vector database

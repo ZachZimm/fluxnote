@@ -1,5 +1,6 @@
 import os
 import json
+import server_info
 from fastapi import WebSocket
 
 async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default") -> None:
@@ -82,14 +83,22 @@ def get_configuration_options(websocket, lc_interface, field, help=False) -> tup
     # Implement your get_configuration_options logic here
     return f"Configuration options for field: {field}"
 
-def set_configuration(websocket, lc_interface, chat_character=None, help=False) -> tuple[str, str]:
+def set_configuration(websocket, lc_interface, configuration_field=None, configuration_value=None, help=False) -> tuple[str, str]:
     if help == True:
         return "Set the configuration options based on arguments passed in. Use get_configuration_options to see the availible configuration fields.", "help"
-    # This function will be used to set config options that are passed in
-    if chat_character is not None:
-        lc_interface.update_config("chat_character", chat_character)
-        return f"Configured character: {chat_character}", "status"
-    return f"Configured character: {chat_character}", "status"
+    # This function is used to set config options that are passed in
+    if configuration_field is not None and configuration_value is not None:
+        _value = None
+        if configuration_value.lower() == "true": # Change strings to bools
+            _value = True
+        # I may want to do something similar with ints and floats
+        elif configuration_value.lower() == "false":
+            _value = False
+        else: _value = configuration_value
+        
+        lc_interface.update_config(configuration_field, _value)
+        return f"Configured {configuration_field}: {str(_value)}", "status"
+    return f"Configuration:\n{lc_interface.get_confg_str()}", "status"
 
 async def summarize(websocket, lc_interface, file_path: str="sample_data/", file_index:str=None, help:bool=False) -> tuple[str, str]:
     if help == True:
@@ -124,18 +133,21 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     history, summary = await lc_interface.langchain_summarize_text_async(text, history)
     summary_string = ""
     try:
-        summary_string = json.dumps(summary.model_dump())
+        summary_object = json.dumps(summary.model_dump())
     except:
         # Try again
         print("Error summarizing text, trying again.")
         history, summary = await lc_interface.langchain_summarize_text_async(text, history)
         try:
-            summary_string = json.dumps(summary.model_dump())
+            summary_object = json.dumps(summary.model_dump())
         except:
             print("Failed to summarize text.")
             return "Error summarizing text.", "summary error"
+    for idea in summary.summary:
+        summary_string += idea.idea + " \n"
     history = lc_interface.append_history(summary_string, history, is_human = False)
-    if summary:
+    print("Summary added to history.")
+    if summary_string != "":
         return summary_string, "summary"
     else:
         return "Error summarizing text.", "summary error"
