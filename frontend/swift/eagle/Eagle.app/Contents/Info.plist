@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>Eagle</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.zzimm.Eagle</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Speech recognition is used so that the user can have natural conversations with the LLM.</string>
+    <key>NSMicrophoneUsageDescription</key>
+	<string>This app will take audio from the default input and use it to recognise speech and return it as text.</string>
+    <key>com.apple.security.get-task-allow</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSUIElement</key>
+    <false/>
+</dict>
+</plist>
