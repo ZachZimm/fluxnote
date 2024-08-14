@@ -103,14 +103,13 @@ struct ContentView: View {
                 .border(Color.gray, width: 1)                
             }
         }
-        // .frame(width: 1200, height: 800)
         .padding()
     }
 
     private func speakText() {
         // set text equal to all of chatLog as a string
         let _text: String = webSocketManager.latestResponse
-        speechSynthesisManager.useSiriVoice = false
+        speechSynthesisManager.useSiriVoice = true 
         speechSynthesisManager.speak(_text)
     }
 
