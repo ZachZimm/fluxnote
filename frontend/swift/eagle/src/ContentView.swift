@@ -13,18 +13,18 @@ struct ContentView: View {
     private var speechSynthesisManager = SpeechSynthesisManager()
     @StateObject private var speechTranscriptionManager = SpeechTranscriptionManager()
 
-
     var body: some View {
+
         VStack {
             var connectionText: String {
                 if webSocketManager.isConnected {
                     return "Connected: \(webSocketManager.url)"
                 } else { return "Not connected" }
             }
-            Text(connectionText)
 
+        Text(connectionText)
             HStack {
-                VStack {
+                HStack {
                     HStack {
                         Text("Func:")
                         TextField("Enter function", text: $function)
@@ -40,36 +40,52 @@ struct ContentView: View {
                 }.padding()  
 
                 VStack {
-                    Text("Message:")
-                    TextField("Enter text", text: $text)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onChange(of: speechTranscriptionManager.currentTranscription, perform: { value in
-                            text = value
-                        })
-                    .onSubmit { sendJsonMessage() }
-                }.padding()
-
-                VStack {
-                    Button(action: { verifySpeechRecognition() }
-                        ) { Text("Verify") }
+                    // Verify button seems to be unnessary
+                    // Button(action: { verifySpeechRecognition() }
+                    //     ) { Text("Verify") }
                     Button(action: { startRecording() }
-                        ) { Text("Start") }
+                        ) { Text("Start Dictation") }
                     Button(action: { stopRecording() }
-                        ) { Text("Stop") }
+                        ) { Text("Stop Dictation") }
+                }
+                VStack {
+                    
                     Button(action: { sendJsonMessage() }
                     ) { Text("Send") }
                     Button(action: { speakText() }
                 ) { Text("Speak") }    
                 }
-                
+
             }
+            .frame(width: 800)
+            VStack {
+                Text("Message:")
+                VStack {
+                TextEditor(text: $text)
+                .frame(width: 900, height: 75)
+                
+                .cornerRadius(6)
+                .padding(.all, 3.0)
+                .onChange(of: speechTranscriptionManager.currentTranscription, perform: { value in
+                        text = value
+                    })
+                .onSubmit { sendJsonMessage() }
+                } 
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray, lineWidth: 2)
+                )}
+                .padding()
 
             VStack {
+                
                 ScrollView {
                     VStack(alignment: .leading) {
                         ForEach(webSocketManager.chatLog, id: \.self) { message in
-                            Text(message + "\n")
+                            Text(message + "\n\n")
                                 .padding(.vertical, 2)
+                            .textSelection(.enabled)
+                            Divider()
                         }
                     }
                     .padding()
@@ -85,6 +101,7 @@ struct ContentView: View {
                         ForEach(webSocketManager.sentMessageLog, id: \.self) { message in
                             Text(message)
                                 .padding(.vertical, 2)
+                            Divider()
                         }
                     }
                     .padding()
@@ -96,6 +113,7 @@ struct ContentView: View {
                         ForEach(webSocketManager.recievedMessageLog, id: \.self) { message in
                             Text(message)
                                 .padding(.vertical, 2)
+                            Divider()
                         }
                     }
                     .padding()

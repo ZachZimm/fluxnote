@@ -3,3 +3,5 @@
 .vscode/
 .idea/
 frontend/macos/swift/.build
+*/_*
+*/._*

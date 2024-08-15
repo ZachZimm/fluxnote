@@ -15,12 +15,15 @@
  - MacOS
  - Default configuration is for an M chip based mac
 
-### Running on an Intel Mac
+## Running on an Intel Mac
 - Certainly possible, you just need to change the taget in `compile.sh`
     - I dont' know what you should change it to though
 
-### Linux / GNOME compatibility
+## Linux / GNOME compatibility
 - Could potentially be implemented with something like [AparokshaUI/adwaita-swift](https://github.com/AparokshaUI/adwaita-swift)
 - Would require segmenting off of macOS specific features
 - Would require a new STT solution
     - Most likely [huggingface/whisper-distil](https://github.com/huggingface/distil-whisper) or a similar model
+
+## TODO
+- Make the websocket connection URL user-configurable somehow, whether through GUI or a JSON file

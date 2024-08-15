@@ -6,7 +6,7 @@ class WebSocketManager: NSObject, ObservableObject {
     @Published var url: String = "ws://lab-ts:8090/ws" // this should be configurable
     @Published var recievedMessageLog: [String] = []
     @Published var sentMessageLog: [String] = []
-    @Published var chatLog: [String] = [""]
+    @Published var chatLog: [String] = []
     @Published var latestResponse: String = ""
     @Published var isResponding: Bool = false
 
@@ -55,8 +55,9 @@ class WebSocketManager: NSObject, ObservableObject {
                         let mode: String = textObj["mode"] as! String
 
                         if mode == "chat streaming" {
-                            if self?.isResponding == false {
+                            if self?.isResponding == false { // Start of a new message
                                 self?.latestResponse = ""
+                                self?.chatLog.append("")
                             }
                             self?.isResponding = true
                             let chatLogLength: Int = self?.chatLog.count ?? 0
@@ -66,12 +67,11 @@ class WebSocketManager: NSObject, ObservableObject {
                             }
                         }
                         else if mode == "chat streaming finished" {
-                            self?.chatLog.append("")
                             self?.isResponding = false
                         }
                         else {
                             self?.recievedMessageLog.append(mode + ":")
-                            self?.recievedMessageLog.append(message + "\n")
+                            self?.recievedMessageLog.append(message)
                         }
                     }
                 case .data(let data):
