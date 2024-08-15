@@ -10,6 +10,7 @@ from utils import read_config, parse_llm_output
 from fastapi import WebSocket
 from models.Summary import Summary, Idea
 from pymongo import MongoClient
+import embeddings
 
 # TODO create a way of keeping the secrets_config up to date with available secrets without tracking it in git
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
@@ -198,20 +199,15 @@ class langchain_interface():
         chain = self.model | parser 
         return chain.astream(_history)
 
-    def langchain_embed_sentence(self, sentence: str, config: dict = None) -> list[float]:
-        if config is None: config = self.get_config()
-        embeds = []
+    def langchain_embed_sentence(self, sentence: str) -> list[float]:
+        _embeddings = []
         try:
-            if config['use_openai']:
-                self.embed_model = OpenAIEmbeddings(api_key=self.secret_config_json['openai_api_key'])
-            else:
-                self.embed_model = OpenAIEmbeddings(base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key']) # Assuming your OpenAI compatible api has an endpoint for embeddings
-            embeds = self.embed_model.embed_query(sentence)
+           _embeddings = embeddings.get_dense_embeddings(sentence, asFloat16=False) 
         except Exception as e:
             print("Exception in langchain_embed_sentence")
             print(f"Error: {e}")
             
-        return embeds 
+        return _embeddings 
 
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.5) -> tuple[list, Summary]:
         time_start = time.time()
@@ -221,7 +217,7 @@ class langchain_interface():
         _history.append(SystemMessage(content=system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
 
-        openai_model = "gpt-4o-mini"
+        openai_model = "gpt-4o-mini" # will be configurable in the future
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else: 
@@ -244,7 +240,7 @@ class langchain_interface():
         summary_obj = summary_result["object"]
 
         for i in range(len(summary_obj.summary)): 
-            embeds: list[float] = self.langchain_embed_sentence(summary_obj.summary[i].idea, config=config)
+            embeds: list = self.langchain_embed_sentence(summary_obj.summary[i].idea)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
             summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
             await asyncio.sleep(1e-4) # Hack to prevent blocking 

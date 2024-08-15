@@ -133,15 +133,17 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     history, summary = await lc_interface.langchain_summarize_text_async(text, history)
     summary_string = ""
     try:
-        summary_object = json.dumps(summary.model_dump())
-    except:
+        summary_object = json.dumps(summary.model_dump()) # This will be saved to a database
+    except Exception as e:
         # Try again
         print("Error summarizing text, trying again.")
+        print(e)
         history, summary = await lc_interface.langchain_summarize_text_async(text, history)
         try:
-            summary_object = json.dumps(summary.model_dump())
-        except:
+            summary_object = json.dumps(summary.model_dump()) # This will be saved to a database
+        except Exception as e:
             print("Failed to summarize text.")
+            print(e)
             return "Error summarizing text.", "summary error"
     for idea in summary.summary:
         summary_string += idea.idea + " \n"

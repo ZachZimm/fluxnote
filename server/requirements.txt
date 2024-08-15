@@ -6,3 +6,5 @@ fastapi
 uvicorn
 pymongo
 psutil
+FlagEmbedding
+peft
