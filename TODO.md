@@ -11,9 +11,12 @@
         - perhaps those ideas could be fetched from the vector db an n would represent the breadth of the search
             - although for consistency we would want some way of finding the density of information on that topic stored in the summary - because it may not be uniform across topics.
             - So n shoud be `n = n * information_density`
-- [ ] Save idea vectors to mongodb
+- [x] Implement a vector embedding manager
+    - This is so that we can use different LLM providers and have a compatible vector database
+- [x] Save idea vectors to mongodb
 - [ ] Save wiki articles to mongodb
     - title, summary, full text, and retrieval date
+- [ ] Implement a routine to verify the quality of the summary
 - [ ] Write a routine to check / rewrite individual ideas
     - This should give the LLM both the original document, as well as the idea
     - The LLM will be instructed to evaluate the idea without the context of the others and re-write the idea if it is not individually meaningful.
@@ -33,12 +36,13 @@
             - additional context that should be taken into account when generating a summar of this note
     
 - [ ] Add a server-side command history
+    - Clients should grab this on login and update it independently
     - Hopefully it will be simple enough to implement up-arrow behaviour
 
 - [ ] Implement a smart model / cheap model dichotomy which allows the user to specify a model for a task
 - [ ] Implement a vector database
 - [ ] Learn about knowledge graphs proper
-- [ ] Implement a graph database
+- [ ] Implement a graph database (if I need to!)
     - There will be at least 2 databases
         - Summary database
             - Nodes are summaries / condensations
@@ -53,6 +57,7 @@
                 - Maybe this would be a good time to learn about using C / C++ in python. Very likely though, the most obvious way of doing it (numpy) will already drop into C / C++. 
 
 - [ ] FEATURE GOAL: Have a conversation with the LLM with user-specified context.
+    - Everything above should be checked off before this is complete
     - Not sure how this context will be defined
         - It may just be a list of tags/categories at first
 - [ ] Listen to the male voice options and determine which are good

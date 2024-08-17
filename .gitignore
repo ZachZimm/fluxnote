@@ -4,4 +4,7 @@
 .idea/
 frontend/macos/swift/.build
 */_*
+
+._*
 */._*
+

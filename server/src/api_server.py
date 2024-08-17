@@ -35,6 +35,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             {"func": "summmarize", "file_index": "1"}
             {"func": "options", "message": "options"}
             """
+            lc_interface.append_user_history(json.dumps(data))
             if _debug:
                 print(data)
             if data["func"] == "quit":

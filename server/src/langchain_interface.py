@@ -12,6 +12,8 @@ from models.Summary import Summary, Idea
 from pymongo import MongoClient
 import embeddings
 
+# TODO Rename this file to something that involves the database OR move the database stuff to a separate file this one isn't too long
+
 # TODO create a way of keeping the secrets_config up to date with available secrets without tracking it in git
 # read loaded secrets' keys -> compare those with saved key names -> if a key is missing add it to the secrets_config
 # once I start using something that needs to be secret, anyways
@@ -66,6 +68,7 @@ class langchain_interface():
     headers = { "Content-Type": "application/json" }
     url = ""
     history = []
+    user_history = []
     permanent_characters = []
     chain = None
     mongo_client = None
@@ -134,6 +137,25 @@ class langchain_interface():
 
     def get_notes_dir(self) -> str:
         return self.notes_dir # Notes will be probably be stored on (client's) disk as well as in the database
+
+    def append_user_history(self, message: str) -> bool:
+        if len(self.user_history) > 100: # This should be configurable
+            self.user_history.pop(0)
+        self.user_history.append(message)
+        # There will be a database for user history as well
+        # not sure if the following is good vv (it could be)
+        # update = {"$set": {"user_history": self.user_history}}
+        # result = self.db["config"].update_one({"userid": self.userid}, update)
+        return True
+
+    def get_user_history(self) -> list:
+        return self.user_history
+
+    def get_user_history_str(self) -> str:
+        return json.dumps(self.user_history)
+
+    def clear_user_history(self) -> None:
+        self.user_history = []
 
     def append_summary(self, summary: Summary) -> str:
         # update the database: 
