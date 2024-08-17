@@ -18,7 +18,6 @@ def print_summary(summary):
     print(f"Summary has {num_ideas} ideas.")
 
     for idea in range(num_ideas):
-        # print(f"{idea}: {summary[idea]['idea']}")
         print_queue.put(f"{idea}: {summary[idea]['idea']}\n")
         i += 1
 
@@ -350,7 +349,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             continue
         elif 'history' == user_command:
             message_object['func'] = "chat_history"
-        elif 'clear ' in user_command:
+        elif 'clear' == user_command:
             message_object['func'] = "clear_history"
         else:
             message_object = {"func": user_command}

@@ -168,19 +168,18 @@ async def wiki_search(websocket, lc_interface, wiki, query, help=False) -> tuple
         return "Search the configured wiki for a query.", "help"
     query_results = wiki.search(query)
     max_results = 10
-    wiki_results[lc_interface.userid] = []
+    wiki.wiki_results = []
     for i, result in enumerate(query_results):
         if i >= max_results:
             break
-        wiki_results[lc_interface.userid].append(result)
-    return json.dumps(wiki_results[lc_interface.userid]), "wiki search results"
+        wiki.wiki_results.append(result)
+    return json.dumps(wiki.wiki_results), "wiki search results"
 
 async def get_wiki_results(websocket, lc_interface, wiki, help=False) -> tuple[str, str]:
     if help == True:
         return "Get the results of the last wiki search.", "help"
-    global wiki_results
     try:
-        _wiki_results = json.dumps(wiki_results[lc_interface.userid])
+        _wiki_results = json.dumps(wiki.wiki_results)
         return _wiki_results, "wiki search results"
     except KeyError:
         return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
@@ -189,11 +188,11 @@ async def get_wiki_results(websocket, lc_interface, wiki, help=False) -> tuple[s
 async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_full=False, help=False) -> tuple[dict, str]:
     if help == True:
         return "Get the content of a wiki page.", "help"
-    if len(wiki_results[lc_interface.userid]) == 0:
+    if len(wiki.wiki_results) == 0:
         return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
     if not query.isdigit():
         return "Invalid input. Enter a number corresponding to a search result.", "wiki error"
-    data = wiki.get_data(wiki_results[lc_interface.userid][int(query) - 1])
+    data = wiki.get_data(wiki.wiki_results[int(query) - 1])
     return_object = {
         "title": data.title,
         "summary": data.summary,

@@ -140,6 +140,8 @@ class langchain_interface():
 
     def append_user_history(self, message: str) -> bool:
         do_not_append_funcs = ["login"] #This should be configurable
+        if json.loads(message)["func"] in do_not_append_funcs:
+            return str(False).lower()
         if len(self.user_history) > 100: # This should be configurable
             self.user_history.pop(0)
         self.user_history.append(message)
