@@ -8,33 +8,7 @@ import json
 import server_info
 from fastapi import WebSocket
 
-available_request_functions = {
-    "login": login,
-    "chat": chat,
-    "add_chat_character": add_chat_chatacter,
-    "get_chat_characters": get_chat_characters,
-    "update_chat_character": update_chat_character,
-    "remove_chat_character": remove_chat_character,
-    "get_configuration": get_configuration,
-    "get_configuration_options": get_configuration_options,
-    "get_secret_configuration": get_secret_configuration,
-    "get_server_status": get_server_status,
-    "server_status": get_server_status,
-    "set_secret_configuration": set_secret_configuration,
-    "configure": set_configuration,
-    "summarize": summarize,
-    "wiki_search": wiki_search,
-    "wiki": wiki,
-    "wiki_results": get_wiki_results,
-    "options": get_functions,
-    "help": get_help,
-    "list": get_available_files_str,
-    "chat_history": get_chat_history,
-    "clear_history": clear_chat_history,
-    "clear_user_history": clear_user_history,
-    "user_history": get_user_history,
-    "quit": end_session,
-}
+
 
 async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default") -> None:
     await websocket.send_json({"message": message, "mode": mode})
@@ -270,13 +244,13 @@ def get_functions(websocket, lc_interface, help=False) -> tuple[str, str]:
 def get_user_history(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Get the user's command history.", "help"
-    return lc_interface.get_user_history_str(), "status"
+    return lc_interface.get_user_history_str(), "user_history status"
 
 def clear_user_history(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Clear the user's command history.", "help"
     lc_interface.clear_user_history()
-    return "User history cleared.", "status"
+    return "User history cleared.", "user_history status"
 
 def login(websocket, lc_interface, username, help=False) -> tuple[str, str]:
     #TODO this needs some kind of authentication
@@ -296,3 +270,31 @@ def get_help(websocket, lc_interface, help=False) -> tuple[str, str]:
     help_message += "use any command followed by 'help' to get more information on that command.\n"
     help_message += json.dumps(get_functions(websocket, lc_interface, help=True)[0])
     return help_message, "help"
+
+available_request_functions = {
+    "login": login,
+    "chat": chat,
+    "add_chat_character": add_chat_chatacter,
+    "get_chat_characters": get_chat_characters,
+    "update_chat_character": update_chat_character,
+    "remove_chat_character": remove_chat_character,
+    "get_configuration": get_configuration,
+    "get_configuration_options": get_configuration_options,
+    "get_secret_configuration": get_secret_configuration,
+    "get_server_status": get_server_status,
+    "server_status": get_server_status,
+    "set_secret_configuration": set_secret_configuration,
+    "configure": set_configuration,
+    "summarize": summarize,
+    "wiki_search": wiki_search,
+    "wiki": wiki,
+    "wiki_results": get_wiki_results,
+    "options": get_functions,
+    "help": get_help,
+    "list": get_available_files_str,
+    "chat_history": get_chat_history,
+    "clear_history": clear_chat_history,
+    "clear_user_history": clear_user_history,
+    "user_history": get_user_history,
+    "quit": end_session,
+}

@@ -10,6 +10,7 @@ from threading import Thread
 
 config_dir = "config.json"
 config = json.load(open(config_dir))
+command_history: list[str] = []
 
 def print_summary(summary):
     i = 0
@@ -43,7 +44,7 @@ def split_into_sentences(message) -> list[str]:
         if is_full_sentence(sentence):
             sentences.append(sentence.strip())
             sentence = ""
-            
+
     return sentences
 
 def is_full_sentence(message):
@@ -72,7 +73,7 @@ def print_worker():
 
 thread = Thread(target=print_worker, daemon=True)
 thread.start()
-    
+
 def aecho(message, end="\n", flush=False):
     def _print(message, end="\n"):
         i = 0
@@ -242,7 +243,9 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                         message_object['max_tokens'] = int(user_command_list[1])
                 message_object['func'] = "chat"
                 message_object['message'] = message
-                await websocket.send(json.dumps(message_object))
+                message_str = json.dumps(message_object)
+                await websocket.send(message_str)
+                command_history.append(message_str)
 
         elif 'help' == user_command:
             message_object['func'] = "help"
@@ -347,7 +350,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             continue
         elif 'history' == user_command:
             message_object['func'] = "chat_history"
-        elif 'clear' in user_command:
+        elif 'clear ' in user_command:
             message_object['func'] = "clear_history"
         else:
             message_object = {"func": user_command}
@@ -356,7 +359,11 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['help'] = True
         
         if should_continue: continue # Do not send because the interaction was fully client side
-        else: await websocket.send(json.dumps(message_object)) # Send the function call to the server
+        else:
+            message_str = json.dumps(message_object)
+            await websocket.send(message_str) # Send the function call to the server
+            command_history.append(message_str)
+
 
 async def create_websocket_connection() -> None:
     def print_close_message():

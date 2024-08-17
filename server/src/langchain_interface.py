@@ -139,6 +139,7 @@ class langchain_interface():
         return self.notes_dir # Notes will be probably be stored on (client's) disk as well as in the database
 
     def append_user_history(self, message: str) -> bool:
+        do_not_append_funcs = ["login"] #This should be configurable
         if len(self.user_history) > 100: # This should be configurable
             self.user_history.pop(0)
         self.user_history.append(message)
@@ -146,7 +147,7 @@ class langchain_interface():
         # not sure if the following is good vv (it could be)
         # update = {"$set": {"user_history": self.user_history}}
         # result = self.db["config"].update_one({"userid": self.userid}, update)
-        return True
+        return str(True).lower()
 
     def get_user_history(self) -> list:
         return self.user_history
