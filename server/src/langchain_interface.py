@@ -32,7 +32,7 @@ def serialize_history(history: list) -> str: # This should be in the utils file
 
 def deserialize_history(history_str: str) -> list: # This should be in the utils file
     print(f"history_str: {history_str}")
-    if history_str.startswith('\"') and history_str.endswith('"'): 
+    if history_str.startswith('\"') and history_str.endswith('"'):
         history_str = history_str[1:-1]
     history_str = history_str.replace("\\n", "")
     history_str = history_str.replace("\\", "")
@@ -63,7 +63,6 @@ class langchain_interface():
     system_prompts = {}
     permanent_characters = []
     model = None
-    embed_model = None
     headers = { "Content-Type": "application/json" }
     url = ""
     history = []
@@ -95,7 +94,7 @@ class langchain_interface():
         result = self.db["config"].update_one(filter, update, upsert=True)
 
         # if there is no history in the database, create it
-        if not self.db["history"].find_one({"userid": self.userid}): 
+        if not self.db["history"].find_one({"userid": self.userid}):
             history = {
                 "userid": self.userid,
                 "history": serialize_history(self.history)
@@ -108,23 +107,23 @@ class langchain_interface():
         update = {"$set": {f"system_prompts.{character_name}": character_bio}}
         result = self.db["config"].update_one({"userid": self.userid}, update, upsert=False)
         self.system_prompts = self.get_chat_characters()
-    
+
     def get_chat_characters(self) -> dict:
         result = self.db["config"].find_one({"userid": self.userid})["system_prompts"]
         return result
 
     def get_chat_characters_str(self) -> str:
         return json.dumps(self.get_chat_characters())
-    
+
     def remove_chat_character(self, character_name: str) -> bool:
         if character_name not in self.permanent_characters:
             if character_name in self.system_prompts.keys():
                 self.system_prompts.pop(character_name)
                 update = {"$set": {f"system_prompts.{character_name}": ""}}
-                result = self.db["config"].update_one({"userid": self.userid}, update, upsert=False) 
+                result = self.db["config"].update_one({"userid": self.userid}, update, upsert=False)
                 return True
         return False
-    
+
     def update_chat_character(self, character_name: str, character_bio: str) -> bool:
         if character_name in self.system_prompts.keys():
             self.system_prompts[character_name] = character_bio
@@ -136,27 +135,36 @@ class langchain_interface():
     def get_notes_dir(self) -> str:
         return self.notes_dir # Notes will be probably be stored on (client's) disk as well as in the database
 
+    def append_summary(self, summary: Summary) -> str:
+        # update the database: 
+        summary_obj = summary.model_dump()
+        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title}}
+        result = self.db["summary"].update_one({"title": summary.title}, update, upsert=True)
+        print(f"Summary: {summary.title} pushed to the database")
+        # get the size of summary.model_dump() in kb and return it
+        return summary.title
+
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
         history.append(HumanMessage(content=message)) if is_human else history.append(AIMessage(content=message))
         update = {"$set": {"history": serialize_history(history)}}
         result = self.db["history"].update_one({"userid": self.userid}, update)
         return history
-    
+
     def clear_history(self) -> None:
         self.db["history"].update_one({"userid": self.userid}, {"$set": {"history": "[]"}})
         self.history = []
-    
+
     def get_history(self, userid: str = "") -> list:
         result = self.db["history"].find_one({"userid": self.userid})
         return json.loads(result["history"])
-    
+
     def get_history_str(self, _indent: int = 0) -> str:
         result = self.db["history"].find_one({"userid": self.userid})
         return json.dumps(result["history"])
- 
+
     def get_config_str(self, _indent: int = 0) -> str:
         return json.dumps(self.get_config(), indent=_indent)
-    
+
     def get_config(self) -> dict:
         result = self.db["config"].find_one({"userid": self.userid})
         return result["config"]
@@ -168,7 +176,7 @@ class langchain_interface():
         if new_config_key == "chat_character":
             self.chat_character = new_config_value
         return True
-    
+
     def get_secret_config_str(self, _indent: int = 0) -> str:
         # return json.dumps(self.secret_config_json, indent=_indent)
         # This is probably not a good idea
@@ -176,7 +184,7 @@ class langchain_interface():
 
     def get_secret_config(self) -> dict:
         # return self.secret_config_json
-        return "Disabled for security"
+        return {"message": "Disabled for security"}
 
     async def stream_langchain_chat_loop_async_generator(self, history: list = [], max_tokens: int = 600, temperature: float = 0.7) -> StreamingStdOutCallbackHandler:
         config = self.get_config()
@@ -188,7 +196,7 @@ class langchain_interface():
         if config['use_openai']:
             openai_model = "gpt-4o-mini"
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model)
-        else: 
+        else:
             self.model = ChatOpenAI(base_url=config['llm_base_url']+'/v1',
                                 api_key=self.secret_config_json['openai_api_key'],
                                 max_tokens=max_tokens,
@@ -196,31 +204,31 @@ class langchain_interface():
                                 )
 
         parser = StrOutputParser()
-        chain = self.model | parser 
+        chain = self.model | parser
         return chain.astream(_history)
 
     def langchain_embed_sentence(self, sentence: str) -> list[float]:
         _embeddings = []
         try:
-           _embeddings = embeddings.get_dense_embeddings(sentence, asFloat16=False) 
+           _embeddings = embeddings.get_dense_embeddings(sentence, asFloat16=False)
         except Exception as e:
             print("Exception in langchain_embed_sentence")
             print(f"Error: {e}")
-            
-        return _embeddings 
 
-    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.5) -> tuple[list, Summary]:
+        return _embeddings
+
+    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6) -> tuple[list, Summary]:
         time_start = time.time()
         config = self.get_config()
         system_prompts = self.get_chat_characters()
-        _history = [] 
+        _history = []
         _history.append(SystemMessage(content=system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
 
         openai_model = "gpt-4o-mini" # will be configurable in the future
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
-        else: 
+        else:
             self.model = ChatOpenAI(
                 base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
                 max_tokens=max_tokens,
@@ -239,11 +247,11 @@ class langchain_interface():
             return history, None
         summary_obj = summary_result["object"]
 
-        for i in range(len(summary_obj.summary)): 
+        for i in range(len(summary_obj.summary)):
             embeds: list = self.langchain_embed_sentence(summary_obj.summary[i].idea)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
             summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
-            await asyncio.sleep(1e-4) # Hack to prevent blocking 
+            await asyncio.sleep(1e-4) # Hack to prevent blocking
 
         runtime = time.time() - time_start
         print(f"Runtime: {round(runtime, 2)} seconds")

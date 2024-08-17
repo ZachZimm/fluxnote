@@ -68,9 +68,26 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
             llm_output = llm_output.replace(f"'{key}\"", f'"{key}"')
             llm_output = llm_output.replace(f"\"{key}'", f'"{key}"')
 
-
+        summary_title = ""
         # this code is specific to the Summary model, it may not even be necessary
         if model_class.__name__ == "Summary":
+            # find the three most common words with length > 3
+            # and use them as the title
+            word_count = {}
+            for word in llm_output.split():
+                word = word.strip().replace('"', "").replace("'", "")
+                if len(word) > 3:
+                    if word in word_count:
+                        word_count[word] += 1
+                    else:
+                        word_count[word] = 1
+
+            sorted_words = sorted(word_count.items(), key=lambda x: x[1], reverse=True)
+            if len(sorted_words) > 1:
+                summary_title = f"{sorted_words[0][0]} {sorted_words[1][0]} {sorted_words[2][0]}"
+            else:
+                summary_title = sorted_words[0][0]
+            summary_title = summary_title.replace('"', "").replace("'", "")
             # Ensure the JSON structure has the required square brackets
             if '[' not in llm_output:
                 pre = '{ "summary": ['
@@ -81,6 +98,7 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
         
         # Parse the JSON string into a dictionary
         summary_dict = json.loads(llm_output.strip())
+        summary_dict["title"] = summary_title
         # Validate and create the model object
         summary_obj = model_class(**summary_dict)
         result["object"] = summary_obj

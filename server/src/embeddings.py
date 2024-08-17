@@ -9,10 +9,10 @@ def get_embeddings(sentence, asFloat16=True):
         embeddings['dense_vecs'] = [float(embed) for embed in embeddings['dense_vecs']]
     return embeddings
 
-def get_dense_embeddings(sentence, asFloat16=True): # This is the only function currently in use
-    embeddings = list(model.encode(sentence, return_dense=True, return_sparse=False, return_colbert_vecs=False))
-    if asFloat16:
-        embeddings['dense_vecs'] = [float(embed) for embed in embeddings['dense_vecs']]
+def get_dense_embeddings(sentence, asFloat16=True) -> list[float]: # This is the only function currently in use
+    embeddings: list[float] = list(model.encode(sentence, return_dense=True, return_sparse=False, return_colbert_vecs=False)['dense_vecs'])
+    if not asFloat16:
+        embeddings = [float(embed) for embed in embeddings]
     return embeddings
 
 # once I get to seriously comparing embeddings, I will likely need to see about using more than just two sentences at a time

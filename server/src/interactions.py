@@ -133,18 +133,20 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     history, summary = await lc_interface.langchain_summarize_text_async(text, history)
     summary_string = ""
     try:
-        summary_object = json.dumps(summary.model_dump()) # This will be saved to a database
+        summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format 
+        lc_interface.append_summary(summary) # Save to database
     except Exception as e:
         # Try again
         print("Error summarizing text, trying again.")
         print(e)
         history, summary = await lc_interface.langchain_summarize_text_async(text, history)
         try:
-            summary_object = json.dumps(summary.model_dump()) # This will be saved to a database
+            summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format 
+            lc_interface.append_summary(summary) # Save to database
         except Exception as e:
             print("Failed to summarize text.")
             print(e)
-            return "Error summarizing text.", "summary error"
+            return e, "summary error"
     for idea in summary.summary:
         summary_string += idea.idea + " \n"
     history = lc_interface.append_history(summary_string, history, is_human = False)
@@ -152,7 +154,7 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     if summary_string != "":
         return summary_string, "summary"
     else:
-        return "Error summarizing text.", "summary error"
+        return f"Error summarizing text. Summary: {summary_string}", "summary error"
     
 async def wiki_search(websocket, lc_interface, wiki, query, help=False) -> tuple[str, str]:
     if help == True:

@@ -7,5 +7,5 @@ class Idea(BaseModel):
 
 class Summary(BaseModel):
     """Summary of user text"""
+    title: str
     summary: list[Idea]
-    
