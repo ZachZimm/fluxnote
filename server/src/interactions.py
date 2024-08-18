@@ -163,6 +163,18 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     else:
         return f"Error summarizing text. Summary: {summary_string}", "summary error"
     
+def get_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get the last summary.", "help"
+    summary = lc_interface.get_summary_str(title)
+    return summary, "summary"
+
+def get_summaries(websocket, lc_interface, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all summaries.", "help"
+    summaries = lc_interface.get_list_of_summaries_str()
+    return summaries, "status"
+
 async def wiki_search(websocket, lc_interface, wiki, query, help=False) -> tuple[str, str]:
     if help == True:
         return "Search the configured wiki for a query.", "help"
@@ -285,6 +297,8 @@ available_request_functions = {
     "set_secret_configuration": set_secret_configuration,
     "configure": set_configuration,
     "summarize": summarize,
+    "get_summary": get_summary,
+    "get_summaries": get_summaries,
     "wiki_search": wiki_search,
     "wiki": wiki,
     "wiki_results": get_wiki_results,

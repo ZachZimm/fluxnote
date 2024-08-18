@@ -13,13 +13,18 @@ config = json.load(open(config_dir))
 command_history: list[str] = []
 
 def print_summary(summary):
-    i = 0
-    num_ideas = len(summary)
-    print(f"Summary has {num_ideas} ideas.")
+    try:
+        summary = json.loads(summary)
+        i = 0
+        num_ideas = len(summary['summary'])
+        print(f"Summary of '{summary['title']}' has {num_ideas} ideas.")
 
-    for idea in range(num_ideas):
-        print_queue.put(f"{idea}: {summary[idea]['idea']}\n")
-        i += 1
+        for idea in range(num_ideas):
+            print_queue.put(f"{idea}: {summary['summary'][idea]['idea']}\n")
+            i += 1
+    except Exception as e:
+        aecho(summary)
+        aecho(f"Error: Could not parse json.\n{e}\n")
 
 streaming_message = ""
 tts_generation_queue = asyncio.Queue()
@@ -125,12 +130,9 @@ def print_json_message(json_str) -> None:
         if "error" in dict_obj["mode"]:
             aecho(f"Error: {dict_obj['message']}")
             return
-        if '[' == dict_obj["message"][0]: # Deprecated
-            dict_obj = json.loads(dict_obj["message"])
-            print_summary(dict_obj["summary"])
-            return
         else:
-            aecho(f"Summary: {dict_obj['message']}")
+            print_summary(dict_obj["message"])
+            # aecho(f"Summary: {dict_obj['message']}")
             return
     elif "wiki search results" in dict_obj["mode"]:
         list_obj = json.loads(dict_obj["message"])
@@ -264,6 +266,14 @@ async def send_messages(websocket) -> None: # consider checking for success and 
 
             message_object['func'] = "summarize"
             message_object['file_index'] = str(command_list[1])
+
+        elif 'get_summary' == user_command:
+            message_object['func'] = "get_summary"
+            # prompt user for title
+            title = await aioconsole.ainput("Enter the title: ")
+            message_object['title'] = title.strip()
+        elif 'get_summaries' == user_command:
+            message_object['func'] = "get_summaries"
 
         elif 'wiki s' in user_command:
             message_object['func'] = "wiki_search"

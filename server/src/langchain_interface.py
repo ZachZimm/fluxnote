@@ -138,7 +138,7 @@ class langchain_interface():
     def get_notes_dir(self) -> str:
         return self.notes_dir # Notes will be probably be stored on (client's) disk as well as in the database
 
-    def append_user_history(self, message: str) -> bool:
+    def append_user_history(self, message: str) -> str:
         do_not_append_funcs = ["login"] #This should be configurable
         if json.loads(message)["func"] in do_not_append_funcs:
             return str(False).lower()
@@ -160,13 +160,43 @@ class langchain_interface():
     def clear_user_history(self) -> None:
         self.user_history = []
 
+    def get_list_of_summaries(self) -> list:
+        # get all the summaries from the database with this userid
+        summaries = self.db["summary"].find({"userid": self.userid})
+        summaries_obj = list(summaries)
+        summary_list = []
+        num_summaries = len(summaries_obj)
+        for i in range(num_summaries):
+            summary_list.append(summaries_obj[i]["title"])
+        return summary_list
+
+    def get_list_of_summaries_str(self) -> str:
+        return json.dumps(self.get_list_of_summaries())
+
+    def get_summary(self, title: str) -> Summary:
+        # make sure both title and userid match
+        summary = self.db["summary"].find_one({"title": title, "userid": self.userid})
+        if not summary:
+            empty_idea = Idea(idea="No summary found", embedding=[])
+            summary = Summary(title="No summary found", summary=[empty_idea])
+            return summary
+        print(f"Summary type: {type(summary)}")
+        print(f"Summary keys: {summary.keys()}")
+        summary_obj = Summary(
+            title=summary["title"],
+            summary=summary["summary"]
+        )
+        return summary_obj 
+
+    def get_summary_str(self, title: str) -> str:
+        return json.dumps(self.get_summary(title).model_dump())
+
     def append_summary(self, summary: Summary) -> str:
         # update the database: 
         summary_obj = summary.model_dump()
-        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title}}
+        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "userid": self.userid}}
         result = self.db["summary"].update_one({"title": summary.title}, update, upsert=True)
         print(f"Summary: {summary.title} pushed to the database")
-        # get the size of summary.model_dump() in kb and return it
         return summary.title
 
     def append_history(self, message: str, history: list = [], is_human: bool = True) -> list:
