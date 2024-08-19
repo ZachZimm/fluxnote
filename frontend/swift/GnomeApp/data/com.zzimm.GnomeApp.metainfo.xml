@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>GnomeApp.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0+ and GFDL-1.3</project_license>
+  <name>GnomeApp</name>
+  <summary>A Gnome App</summary>  
+  <description>
+    <p>
+      A Gnome App
+    </p>
+  </description>
+  
+  <url type="homepage">https://www.zzimm.com</url>
+  <update_contact>richard_at_hughsie.com</update_contact>
+</component>

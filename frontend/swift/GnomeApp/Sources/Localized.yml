@@ -1,0 +1,29 @@
+default: en
+
+helloWorld:
+    en: Hello, world!
+    de: Hallo, Welt!
+
+clickMe:
+    en: Click me!
+    de: Klick mich!
+
+buttonClicked:
+    en: Button clicked
+    de: Button geklickt
+
+newWindow:
+    en: New Window
+    de: Neues Fenster
+
+closeWindow:
+    en: Close Window
+    de: Fenster schliessen
+
+quit:
+    en: Quit
+    de: Verlassen
+
+mainMenu:
+    en: Main Menu
+    de: Hauptmenü
