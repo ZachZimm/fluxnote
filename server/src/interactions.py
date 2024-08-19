@@ -133,7 +133,7 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
             text = file.read()
     except:
         return "Error reading file.", "summary error"
-    
+
     await send_ws_message(websocket, "Summarizing text from " + file_path.split('\\')[-1], mode="status")
 
     history = lc_interface.get_history()
@@ -162,7 +162,23 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
         return summary_string, "summary"
     else:
         return f"Error summarizing text. Summary: {summary_string}", "summary error"
-    
+
+def read_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Read a summary into chat history.", "help"
+    summary = lc_interface.get_summary(title)
+
+    summary_string = f"summary of document named {title}: \n"
+    summary_json = summary.model_dump()
+    i = 0
+    for idea in summary_json["summary"]:
+        i += 1
+        summary_string += f"{str(i)}: {idea['idea']} \n"
+
+    lc_interface.append_history(summary_string) # Save to history
+
+    return f"Summary of {summary.title} added to history", "status"
+
 def get_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     if help == True:
         return "Get the last summary.", "help"
@@ -299,6 +315,7 @@ available_request_functions = {
     "summarize": summarize,
     "get_summary": get_summary,
     "get_summaries": get_summaries,
+    "read_summary": read_summary,
     "wiki_search": wiki_search,
     "wiki": wiki,
     "wiki_results": get_wiki_results,

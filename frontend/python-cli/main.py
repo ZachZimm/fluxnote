@@ -267,9 +267,13 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['func'] = "summarize"
             message_object['file_index'] = str(command_list[1])
 
-        elif 'get_summary' == user_command:
+        elif 'get_summary' == user_command: # Get summary displays the summary for the user
             message_object['func'] = "get_summary"
             # prompt user for title
+            title = await aioconsole.ainput("Enter the title: ")
+            message_object['title'] = title.strip()
+        elif 'read_summary' == user_command:
+            message_object['func'] = "read_summary"
             title = await aioconsole.ainput("Enter the title: ")
             message_object['title'] = title.strip()
         elif 'get_summaries' == user_command:
@@ -289,7 +293,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         elif 'wiki' in user_command:
             should_save_string = await aioconsole.ainput("Save this wiki page? (y/n): ")
             should_save = True if 'y' in should_save_string else False
-            if not should_save: 
+            if not should_save:
                 return_full_string = await aioconsole.ainput("Return full content? (y/n): ")
             else: return_full_string = "n"
             message_object['func'] = "wiki"

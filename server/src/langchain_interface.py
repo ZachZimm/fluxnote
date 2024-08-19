@@ -180,13 +180,11 @@ class langchain_interface():
             empty_idea = Idea(idea="No summary found", embedding=[])
             summary = Summary(title="No summary found", summary=[empty_idea])
             return summary
-        print(f"Summary type: {type(summary)}")
-        print(f"Summary keys: {summary.keys()}")
         summary_obj = Summary(
             title=summary["title"],
             summary=summary["summary"]
         )
-        return summary_obj 
+        return summary_obj
 
     def get_summary_str(self, title: str) -> str:
         return json.dumps(self.get_summary(title).model_dump())
