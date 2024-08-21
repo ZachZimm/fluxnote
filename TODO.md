@@ -6,7 +6,7 @@
     - Should also start testing with multiple users
         - User string needs to be configurable first
 - [x] Refactor api_server.py
-- [ ] Write a function to read existing documents into the chat history
+- [x] Write a function to read existing documents into the chat history
     - similarly, the ability to read existing summaries, or ideas
         - perhaps those ideas could be fetched from the vector db an n would represent the breadth of the search
             - although for consistency we would want some way of finding the density of information on that topic stored in the summary - because it may not be uniform across topics.
@@ -34,12 +34,11 @@
             - should the llm doubt the claims in the document or treat them in a particular way?
         - opt: context
             - additional context that should be taken into account when generating a summar of this note
-    
-- [ ] Add a server-side command history
+
+- [x] Add a server-side command history
     - Clients should grab this on login and update it independently
     - Hopefully it will be simple enough to implement up-arrow behaviour
 
-- [ ] Implement a smart model / cheap model dichotomy which allows the user to specify a model for a task
 - [ ] Implement a vector database
 - [ ] Learn about knowledge graphs proper
 - [ ] Implement a graph database (if I need to!)
@@ -54,12 +53,34 @@
                 - While implementing this seems pretty reasonable, I wonder how much compute it will involve to find all of those embedding similarities. The number of ideas in a knowledge base could grow rather large and this involves computing vector similarities for every single combination of ideas.
                 - This may be more feasable on a per-document level, and new graphs could be created upon instruction, but not automatically.
                 - Or, I may be overestimating the amount of compute involved in say 30,000 similarity computations (wild guess of a number). We're currently using 768 dimension embeddings. 758 x 30,000 = 23 M. Multiply that by the number of ideas in the summary (15-40) and that doesn't look so terrible. I am not sure if `embedding_size x num_embeddings` represents the computation time very well though.
-                - Maybe this would be a good time to learn about using C / C++ in python. Very likely though, the most obvious way of doing it (numpy) will already drop into C / C++. 
+                - Maybe this would be a good time to learn about using C / C++ in python. Very likely though, the most obvious way of doing it (numpy) will already drop into C / C++.
 
 - [ ] FEATURE GOAL: Have a conversation with the LLM with user-specified context.
     - Everything above should be checked off before this is complete
     - Not sure how this context will be defined
         - It may just be a list of tags/categories at first
+
+- [ ] Look into using to LLM to generate second-order ideas
+  - This would be a very interesting feature if it pans out
+  - The LLM would be given a list of ideas and would be asked a list of new ideas using those as a starting point
+- [ ] Design an interesting way of displaying data in a GUI
+  - Some way of meaningfully represetning the potentially representing the many ideas and summaries without overwhelming the user
+  - This will likely involve some kind of graph
+  - Should allow the user some kind of discoverability too
+- [ ] Implement a way for users to choose which model to use for which task
+  - OpenAI / Deepseek can summarize while the local model can chat
+  - one option:
+  - Essentaily each task should have a priority level, which is associated with a model
+    - based on user configuration
+    - Scores of 1-10
+      - If there is only one model specified, it will be used for all tasks
+      - If there are multiple models, they will be distributed across the score range according to how the user ranks them
+        - If there are 2 models, anything 1-5 will use the first model, and 6-10 will use the second model
+        - If there are 3 models, 1-3 will use the first, 4-6 will use the second, and 7-10 will use the third
+        - etc..
+  - Another option, as there are only 2 tasks and wer'e only looking at adding a couple more
+    - The user can specify which model to use for each task
+    - If user doesn't specify, the cheapest model will be used
 - [ ] Listen to the male voice options and determine which are good
 - [ ] PDF parsing routine
     - Just an extension of the document / note parsing routines that is PDF compatible
@@ -96,9 +117,8 @@
     - So that images (charts and otherwise) can be used as information for our knowledge base
     - Save some metadata as well, at least a title. This can be LLM-suggested
     - Option for user-specified context while parsing
-        - this would help with ambiguity, and would 
+        - this would help with ambiguity, and would
 - [ ] Powerpoint to text
     - This may be a combination of parsing visible text from the slides, as well as using Image2Text
     - Powerpoints are often designed such that there only small, incremental changes between slides (one new bullet point at a time) and this is not ideal for parsing. That will have to be addressed somehow.
         - diffs?
-    
