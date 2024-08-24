@@ -91,7 +91,7 @@ def aecho(message, end="\n", flush=False):
             i += messsage_len
     try:
         _print(message, end=end)
-    except Exception as e: print(e) # Not good 
+    except Exception as e: print(e) # Not good
 
 def print_json_message(json_str) -> None:
     global streaming_message
@@ -149,7 +149,7 @@ def print_json_message(json_str) -> None:
             aecho(wiki_obj["content"])
     else:
         aecho(f"Mode: {dict_obj['mode']}\n")
-        
+
         try:
             message = dict_obj["message"]
             if message[0] == '"' and message[-1] == '"':
@@ -164,7 +164,7 @@ def print_json_message(json_str) -> None:
                     for m in message_obj:
                         index += 1
                         aecho(f"{str(index)}:\t{str(m)}")
-                        
+
                 elif isinstance(message_obj, dict):
                     for key in message_obj.keys():
                         aecho(f"{key}: {message_obj[key]}")
@@ -278,6 +278,10 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['title'] = title.strip()
         elif 'get_summaries' == user_command:
             message_object['func'] = "get_summaries"
+        elif 'get_article' == user_command:
+            message_object['func'] = "get_article"
+            title = await aioconsole.ainput("Enter the title: ")
+            message_object['title'] = title.strip().lower()
 
         elif 'wiki s' in user_command:
             message_object['func'] = "wiki_search"
@@ -342,7 +346,7 @@ async def send_messages(websocket) -> None: # consider checking for success and 
                 print(f"{i}: {voice}")
             voice = await aioconsole.ainput("Enter your selected voice: ")
             if voice in tts.GOOD_FEMALE_VOICES:
-                tts.VOICE = voice 
+                tts.VOICE = voice
             elif voice.isdigit() and int(voice) <= len(voices):
                 tts.VOICE = voices[int(voice)-1]
             else: print("Invalid voice.")
@@ -367,10 +371,10 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['func'] = "clear_history"
         else:
             message_object = {"func": user_command}
-        
+
         if 'help' in user_command:
             message_object['help'] = True
-        
+
         if should_continue: continue # Do not send because the interaction was fully client side
         else:
             message_str = json.dumps(message_object)
@@ -384,11 +388,11 @@ async def create_websocket_connection() -> None:
         print("Connection closed.")
         print()
 
-    uri = f"ws://{config['hostname']}:{config['port']}/ws"  
+    uri = f"ws://{config['hostname']}:{config['port']}/ws"
     async with websockets.connect(uri) as websocket:
         print("Connected to WebSocket server")
         try:
-            
+
             await asyncio.gather(listen_for_messages(websocket), send_messages(websocket), tts_generator(), tts_player())
         except websockets.exceptions.ConnectionClosedOK: print_close_message()
         except websockets.exceptions.ConnectionClosedError: print_close_message()
@@ -413,12 +417,12 @@ async def tts_queue_watcher():
 async def standalone_tts_sentences(sentences: list[str]) -> None:
     for sentence in sentences:
         tts_generation_queue.put_nowait(sentence)
-    await asyncio.gather(tts_generator(), tts_player(), tts_queue_watcher())    
+    await asyncio.gather(tts_generator(), tts_player(), tts_queue_watcher())
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if ('--tts' in sys.argv) or ('-t' in sys.argv):
-            
+
             if ('-h' in sys.argv) or ('--help' in sys.argv):
                 print("Usage:\npython main.py -t 'text to speak'")
                 print("python main.py --tts 'text to speak'")
@@ -434,7 +438,7 @@ if __name__ == "__main__":
                 loop.run_until_complete(standalone_tts_sentences(sentences))
             else:
                 asyncio.run(standalone_tts(sys.argv[-1]))
-    
+
     else:
         loop = asyncio.new_event_loop()
         loop.run_until_complete(create_websocket_connection())

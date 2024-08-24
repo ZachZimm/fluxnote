@@ -1,5 +1,6 @@
 from models.WikiData import WikiData
 from mediawiki import MediaWiki, exceptions
+import time
 
 class WikiInterface:
     wiki = None
@@ -18,16 +19,18 @@ class WikiInterface:
         try:
             page = self.wiki.page(query)
             data: WikiData = WikiData(
-                title=page.title + " wiki", # this naming scheme is going to need some thought
+                title=page.title.lower() + " wiki", # this naming scheme is going to need some thought
                 summary=page.summary,
                 content=page.content,
-                links=page.links
+                links=page.links,
+                creation=time.time()
             )
             return data
         except exceptions.DisambiguationError as e:
             return WikiData(
-                title=e.title,
-                summary="error: Disambiguation Error",
-                content="error: Disambiguation Error",
+                title=e.title.lower(),
+                summary="error: disambiguation error",
+                content="error: disambiguation error",
+                creation=-1,
                 links=[]
             )

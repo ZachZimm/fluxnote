@@ -172,6 +172,36 @@ class langchain_interface():
 
         return str(True).lower()
 
+    def get_article(self, title: str) -> WikiData:
+        # make sure both title and userid match
+        article = self.db["articles"].find_one({"title": title, "userid": self.userid})
+        if not article:
+            return WikiData(title="No article found", summary="", content="", links=[])
+        return_obj = WikiData(
+                            title=article["title"],
+                            summary=article["summary"],
+                            content=article["content"],
+                            links=article["links"],
+                            creation=article["creation"],
+                           )
+        return return_obj
+
+    def get_article_str(self, title: str) -> str:
+        return json.dumps(self.get_article(title).model_dump())
+
+    def get_list_of_articles(self) -> list:
+        # get all the articles from the database with this userid
+        articles = self.db["articles"].find({"userid": self.userid})
+        articles_obj = list(articles)
+        article_list = []
+        num_articles = len(articles_obj)
+        for i in range(num_articles):
+            article_list.append(articles_obj[i]["title"])
+        return article_list
+
+    def get_list_of_articles_str(self) -> str:
+        return json.dumps(self.get_list_of_articles())
+
 
     def get_list_of_summaries(self) -> list:
         # get all the summaries from the database with this userid

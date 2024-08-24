@@ -193,6 +193,18 @@ def get_summaries(websocket, lc_interface, help=False) -> tuple[str, str]:
     summaries = lc_interface.get_list_of_summaries_str()
     return summaries, "status"
 
+def get_articles(websocket, lc_interface, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get the list of articles.", "help"
+    articles = lc_interface.get_list_of_articles_str()
+    return articles, "status"
+
+def get_article(websocket, lc_interface, title, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get the article with the specified name.", "help"
+    article = lc_interface.get_article_str(title)
+    return article, "article"
+
 async def wiki_search(websocket, lc_interface, wiki, query, help=False) -> tuple[str, str]:
     if help == True:
         return "Search the configured wiki for a query.", "help"
@@ -232,12 +244,10 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
     return_object["message"] = f"Keys are {', '.join(return_object.keys())}"
 
     if should_save: # This should probably also save the summary in a separate file
-        # This will also save to a database as soon as I integrate that
-        lc_interface.append_article(data)
+        lc_interface.append_article(data) # Save to database
         filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
         with open(filepath, "w") as file:
             file.write(data.content)
-        # await send_ws_message(websocket, f"Content downloaded to {filepath}", mode="wiki")
     return json.dumps(return_object), "wiki"
 
 def get_available_files_str(websocket, lc_interface, help=False) -> tuple[str, str]:
@@ -319,6 +329,8 @@ available_request_functions = {
     "get_summary": get_summary,
     "get_summaries": get_summaries,
     "read_summary": read_summary,
+    "get_articles": get_articles,
+    "get_article": get_article,
     "wiki_search": wiki_search,
     "wiki": wiki,
     "wiki_results": get_wiki_results,

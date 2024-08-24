@@ -6,3 +6,4 @@ class WikiData(BaseModel):
     summary: str
     content: str
     links: list[str]
+    creation: float
