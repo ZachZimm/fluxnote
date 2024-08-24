@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from utils import read_config, parse_llm_output
 from fastapi import WebSocket
 from models.Summary import Summary, Idea
+from models.WikiData import WikiData
 from pymongo import MongoClient
 import embeddings
 
@@ -160,6 +161,18 @@ class langchain_interface():
     def clear_user_history(self) -> None:
         self.user_history = []
 
+    def append_article(self, article: WikiData) -> str:
+        # insert the summary into the database with the userid and title as keys
+        # if there is already a match, overwrite it
+        document = article.model_dump()
+        document["userid"] = self.userid
+        document["title"] = article.title
+        update = {"$set": document}
+        result = self.db["articles"].update_one({"userid": self.userid, "title": article.title}, update, upsert=True)
+
+        return str(True).lower()
+
+
     def get_list_of_summaries(self) -> list:
         # get all the summaries from the database with this userid
         summaries = self.db["summary"].find({"userid": self.userid})
@@ -190,8 +203,7 @@ class langchain_interface():
         return json.dumps(self.get_summary(title).model_dump())
 
     def append_summary(self, summary: Summary) -> str:
-        # update the database: 
-        summary_obj = summary.model_dump()
+        # update the database:
         update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "userid": self.userid}}
         result = self.db["summary"].update_one({"title": summary.title}, update, upsert=True)
         print(f"Summary: {summary.title} pushed to the database")

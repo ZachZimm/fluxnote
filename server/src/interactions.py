@@ -5,8 +5,10 @@
 
 import os
 import json
+# from langchain_interface import langchain_interface
 import server_info
 from fastapi import WebSocket
+from models.WikiData import WikiData
 
 
 
@@ -17,7 +19,7 @@ async def chat(websocket, lc_interface, message, help=False, max_tokens = 600, t
         return "Chat with the LLM, using your configured character. Information from summaries can be loaded into history for the LLM's reference but the way of doing that is in development. Currently it involves creating a summary then initiating a chat session. Chat history is currently deleted on disconnection, though that is likely to change.", "help"
     user_message = message.strip()
     history = lc_interface.get_history()
-    history = lc_interface.append_history(user_message, history, is_human = True) 
+    history = lc_interface.append_history(user_message, history, is_human = True)
     generator = await lc_interface.stream_langchain_chat_loop_async_generator(history, max_tokens, temperature)
     assistant_message = ""
     async for chunk in generator:
@@ -102,7 +104,7 @@ def set_configuration(websocket, lc_interface, configuration_field=None, configu
         elif configuration_value.lower() == "false":
             _value = False
         else: _value = configuration_value
-        
+
         lc_interface.update_config(configuration_field, _value)
         return f"Configured {configuration_field}: {str(_value)}", "status"
     return f"Configuration:\n{lc_interface.get_confg_str()}", "status"
@@ -115,7 +117,7 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     path_is_file: bool = os.path.isfile(file_path)
 
     # Build a file path for the file to be summarized
-    if path_is_file: 
+    if path_is_file:
         file_index = None
     elif file_index is not None and file_index.isdigit():
         available_files, _ = get_available_files(websocket, lc_interface, file_path)
@@ -140,7 +142,7 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     history, summary = await lc_interface.langchain_summarize_text_async(text, history)
     summary_string = ""
     try:
-        summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format 
+        summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format
         lc_interface.append_summary(summary) # Save to database
     except Exception as e:
         # Try again
@@ -148,12 +150,12 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
         print(e)
         history, summary = await lc_interface.langchain_summarize_text_async(text, history)
         try:
-            summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format 
+            summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format
             lc_interface.append_summary(summary) # Save to database
         except Exception as e:
             print("Failed to summarize text.")
             print(e)
-            return e, "summary error"
+            return str(e), "summary error"
     for idea in summary.summary:
         summary_string += idea.idea + " \n"
     history = lc_interface.append_history(summary_string, history, is_human = False)
@@ -212,15 +214,15 @@ async def get_wiki_results(websocket, lc_interface, wiki, help=False) -> tuple[s
     except KeyError:
         return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
 
-
-async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_full=False, help=False) -> tuple[dict, str]:
+# This is the function which actually retrieves the wiki data
+async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_full=False, help=False) -> tuple[str, str]:
     if help == True:
         return "Get the content of a wiki page.", "help"
     if len(wiki.wiki_results) == 0:
         return "No search results. Enter 'wiki search' to search for a topic.", "wiki error"
     if not query.isdigit():
         return "Invalid input. Enter a number corresponding to a search result.", "wiki error"
-    data = wiki.get_data(wiki.wiki_results[int(query) - 1])
+    data: WikiData = wiki.get_data(wiki.wiki_results[int(query) - 1])
     return_object = {
         "title": data.title,
         "summary": data.summary,
@@ -230,7 +232,8 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
     return_object["message"] = f"Keys are {', '.join(return_object.keys())}"
 
     if should_save: # This should probably also save the summary in a separate file
-        # This will also save to a database as soon as I integrate that 
+        # This will also save to a database as soon as I integrate that
+        lc_interface.append_article(data)
         filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
         with open(filepath, "w") as file:
             file.write(data.content)
@@ -240,7 +243,7 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
 def get_available_files_str(websocket, lc_interface, help=False) -> tuple[str, str]:
     available_files, status = get_available_files(websocket, lc_interface, help)
     if help == True:
-        return available_files[0], status 
+        return available_files[0], status
     return json.dumps(available_files), "status"
 
 def get_available_files(websocket, lc_interface, help = False) -> tuple[list, str]:

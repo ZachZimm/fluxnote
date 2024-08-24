@@ -18,7 +18,7 @@ class WikiInterface:
         try:
             page = self.wiki.page(query)
             data: WikiData = WikiData(
-                title=page.title,
+                title=page.title + " wiki", # this naming scheme is going to need some thought
                 summary=page.summary,
                 content=page.content,
                 links=page.links
@@ -27,7 +27,7 @@ class WikiInterface:
         except exceptions.DisambiguationError as e:
             return WikiData(
                 title=e.title,
-                summary="Disambiguation Error",
-                content="Disambiguation Error",
+                summary="error: Disambiguation Error",
+                content="error: Disambiguation Error",
                 links=[]
-            ) 
+            )

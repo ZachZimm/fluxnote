@@ -5,24 +5,33 @@
 - [x] Some kind of monitoring so that the client can tell if the server is busy
     - Should also start testing with multiple users
         - User string needs to be configurable first
+
 - [x] Refactor api_server.py
+
 - [x] Write a function to read existing documents into the chat history
     - similarly, the ability to read existing summaries, or ideas
         - perhaps those ideas could be fetched from the vector db an n would represent the breadth of the search
             - although for consistency we would want some way of finding the density of information on that topic stored in the summary - because it may not be uniform across topics.
             - So n shoud be `n = n * information_density`
+
 - [x] Implement a vector embedding manager
     - This is so that we can use different LLM providers and have a compatible vector database
+
 - [x] Save idea vectors to mongodb
+
 - [ ] Save wiki articles to mongodb
     - title, summary, full text, and retrieval date
-- [ ] Implement a routine to verify the quality of the summary
+
+- [ ] Implement a routine to verify the quality of a summary
+  - Not sure whether this run upon summary creation, or only when requested
+
 - [ ] Write a routine to check / rewrite individual ideas
     - This should give the LLM both the original document, as well as the idea
     - The LLM will be instructed to evaluate the idea without the context of the others and re-write the idea if it is not individually meaningful.
         - This may be a 2 step process where the first checks whether a re-write is nessecary and the second performs the rewrite
     - This seems like a very heavy compute task (lots of input processing of full documents)
         - This will ideally run in the background
+
 - [ ] Add a reworked version of the "document-parser" character called "note-parser" or something
     - this system prompt will specify that the notes are created by a user and will be treated slightly differently
     - The associated routine should allow for some options (or just metadata somehow specified, possibly just as text in the note file). Most of this should be added to the doc parsing routine too.
@@ -63,10 +72,12 @@
 - [ ] Look into using to LLM to generate second-order ideas
   - This would be a very interesting feature if it pans out
   - The LLM would be given a list of ideas and would be asked a list of new ideas using those as a starting point
+
 - [ ] Design an interesting way of displaying data in a GUI
   - Some way of meaningfully represetning the potentially representing the many ideas and summaries without overwhelming the user
   - This will likely involve some kind of graph
   - Should allow the user some kind of discoverability too
+
 - [ ] Implement a way for users to choose which model to use for which task
   - OpenAI / Deepseek can summarize while the local model can chat
   - one option:
@@ -81,10 +92,13 @@
   - Another option, as there are only 2 tasks and wer'e only looking at adding a couple more
     - The user can specify which model to use for each task
     - If user doesn't specify, the cheapest model will be used
+
 - [ ] Listen to the male voice options and determine which are good
+
 - [ ] PDF parsing routine
     - Just an extension of the document / note parsing routines that is PDF compatible
     - OCR may be nessecary for some PDFs, and when it is recognition will probably be bad. At the very least the user should be warned.
+
 - [ ] Implement a server-side routine to fetch news from specified feeds
     - this should be easily disabled / enabled with a bool in the config file
     - Server-side because multiple users may want the same news sources and this is likely to take the most disk space already as will work automatically in the background.
@@ -95,6 +109,7 @@
         - This will most likely be with the LLM. Feed it the critera, as well as the news item and let it decide.
     - If the news item is relevant, then automatically summarize it, categorize it in the database, and create vector relationships
     - News items may need their own model, as a timestamp is important so that the LLM can easily be told X happened before Y.
+
 - [ ] Implement an alternative TTS option
     - the `edge_tts` package makes an API request to a Bing url. Their TTS processing is really good, fast, and free. Those 3 things don't usually go together so once they realize people have reverse engineered their API and they also start caring about how much that compute costs they might restrict it.
     - There are a number of other TTS options, both paid and locally hostable
@@ -110,6 +125,7 @@
                 - Liscence forbids commercial use, although as a fully self hosted option it's pretty good
             - MARS TTS
                 - The promo video was impressive but the huggingface spaces demo I tried was not. It may still be worth looking into though.
+
 - [ ] Implement an Image to Text routine
     - Like the other ML routines, this will have multiple providers
         - OpenAI package already supports this
@@ -118,6 +134,7 @@
     - Save some metadata as well, at least a title. This can be LLM-suggested
     - Option for user-specified context while parsing
         - this would help with ambiguity, and would
+
 - [ ] Powerpoint to text
     - This may be a combination of parsing visible text from the slides, as well as using Image2Text
     - Powerpoints are often designed such that there only small, incremental changes between slides (one new bullet point at a time) and this is not ideal for parsing. That will have to be addressed somehow.
