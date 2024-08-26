@@ -29,8 +29,8 @@ def replace_double_quotes_within_string(json_string):
     result = re.sub(pattern, replacement, json_string)
     return result
 
-
-def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str, Any]:
+# This function is only used for the Summary model, maybe it should be renamed and/or moved
+def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_title: str = "") -> Dict[str, Any]:
     # This function santizes JSON output from the LLM and returns an object of the model type passed in 
     result: Dict[str, Any] = {"error": False, "object": None}
     try:        
@@ -68,27 +68,27 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str) -> Dict[str,
             llm_output = llm_output.replace(f"'{key}\"", f'"{key}"')
             llm_output = llm_output.replace(f"\"{key}'", f'"{key}"')
 
-        summary_title = ""
-        # this code is specific to the Summary model, it may not even be necessary
+        # this code is specific to the Summary model
         if model_class.__name__ == "Summary":
             # find the three most common words with length > 3
             # and use them as the title
-            word_count = {}
-            for word in llm_output.split():
-                word = word.strip().replace('"', "").replace("'", "")
-                if len(word) > 3:
-                    if word in word_count:
-                        word_count[word] += 1
-                    else:
-                        word_count[word] = 1
+            if summary_title == "":
+                word_count = {}
+                for word in llm_output.split():
+                    word = word.strip().replace('"', "").replace("'", "")
+                    if len(word) > 3:
+                        if word in word_count:
+                            word_count[word] += 1
+                        else:
+                            word_count[word] = 1
 
-            sorted_words = sorted(word_count.items(), key=lambda x: x[1], reverse=True)
-            if len(sorted_words) > 1:
-                summary_title = f"{sorted_words[0][0]} {sorted_words[1][0]} {sorted_words[2][0]}"
-            else:
-                summary_title = sorted_words[0][0]
+                sorted_words = sorted(word_count.items(), key=lambda x: x[1], reverse=True)
+                if len(sorted_words) > 1:
+                    summary_title = f"{sorted_words[0][0]} {sorted_words[1][0]} {sorted_words[2][0]}"
+                else:
+                    summary_title = sorted_words[0][0]
             summary_title = summary_title.replace('"', "").replace("'", "")
-            # Ensure the JSON structure has the required square brackets
+            # Ensure the JSON structure has the required square brackets, this is not ususally necessary
             if '[' not in llm_output:
                 pre = '{ "summary": ['
                 llm_output = pre + llm_output

@@ -19,8 +19,14 @@
 
 - [x] Save idea vectors to mongodb
 
-- [ ] Save wiki articles to mongodb
+- [x] Save wiki articles to mongodb
     - title, summary, full text, and retrieval date
+
+- [x] Fully deprecate the usage of text files in the sample-data directory
+    - What remains to be changed:
+        - Where the string for creating summaries is read from
+        - Save behaviour on wikipedia download 
+    - Implement a new way to read text documents into the database using the existing method
 
 - [ ] Implement a routine to verify the quality of a summary
   - Not sure whether this run upon summary creation, or only when requested
@@ -48,7 +54,19 @@
     - Clients should grab this on login and update it independently
     - Hopefully it will be simple enough to implement up-arrow behaviour
 
-- [ ] Implement a vector database
+- [ ] Integrate a vector database and tagging system
+    - This will mostly be used so for semantic search so that the user can dynamically create idea-spaces
+        - This will allow for a system of choosing ideas based on 'tags'
+            - these tags will need to be added to the Summary and Idea models
+            - in the long term, these tags will be something that an LLM can determine (if that is the preference)
+            - maintain a list of all of a user's tags
+            - Not sure how this will mesh with other ideas of notes / news
+                - Those may be tags in themselves but for news at least I feel that I need more than just a tag
+                    - I feel like news in particular will need a date system, so a date range can easily be specified, or potentially even weighed into the importance of the ideas when they are eventually used
+                - Things would likely have multiple tags anyways, so this might be fine
+                    - tags could be like: "news, technology, hardware, GPU, NVIDIA"
+                        - This would catch queries at many levels of specificity 
+                            - would be a pain to do that manually, no doubt we will need an LLM routine for this, along with a model most likely
 - [ ] Learn about knowledge graphs proper
 - [ ] Implement a graph database (if I need to!)
     - There will be at least 2 databases
@@ -139,3 +157,8 @@
     - This may be a combination of parsing visible text from the slides, as well as using Image2Text
     - Powerpoints are often designed such that there only small, incremental changes between slides (one new bullet point at a time) and this is not ideal for parsing. That will have to be addressed somehow.
         - diffs?
+
+- [ ] Server-side text to speech
+    - this is pretty low priority but it would be useful for the creation of clients.
+    - this would dramatically raise bandwith usage
+        - possibly storage as well

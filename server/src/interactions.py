@@ -109,7 +109,8 @@ def set_configuration(websocket, lc_interface, configuration_field=None, configu
         return f"Configured {configuration_field}: {str(_value)}", "status"
     return f"Configuration:\n{lc_interface.get_confg_str()}", "status"
 
-async def summarize(websocket, lc_interface, file_path: str="sample_data/", file_index:str=None, help:bool=False) -> tuple[str, str]:
+# This function will soon be removed
+async def summarize_file(websocket, lc_interface, file_path: str="sample_data/", file_index:str=None, help:bool=False) -> tuple[str, str]:
     if help == True:
         return "Summarize text from a specified file. Either a directory with an index or a full file path can be passed in. Relative paths are not allowed.", "help"
     available_files = []
@@ -165,6 +166,48 @@ async def summarize(websocket, lc_interface, file_path: str="sample_data/", file
     else:
         return f"Error summarizing text. Summary: {summary_string}", "summary error"
 
+async def summarize(websocket, lc_interface, text, title="", help=False) -> tuple[str, str]:
+    if help == True:
+        return "Summarize text from a specified file. Either a directory with an index or a full file path can be passed in. Relative paths are not allowed.", "help"
+    history = lc_interface.get_history()
+    history, summary = await lc_interface.langchain_summarize_text_async(text, history, title=title)
+    summary_string = ""
+    try:
+        summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format
+        lc_interface.append_summary(summary) # Save to database
+    except Exception as e:
+        # Try again
+        print("Error summarizing text, trying again.")
+        print(e)
+        history, summary = await lc_interface.langchain_summarize_text_async(text, history, title=title)
+        try:
+            summary_object = json.dumps(summary.model_dump()) # Verify that data conforms to expected format
+            lc_interface.append_summary(summary) # Save to database
+        except Exception as e:
+            print("Failed to summarize text.")
+            print(e)
+            return str(e), "summary error"
+    for idea in summary.summary:
+        summary_string += idea.idea + " \n"
+    history = lc_interface.append_history(summary_string, history, is_human = False)
+    print("Summary added to history.")
+    if summary_string != "":
+        return summary_string, "summary"
+    else:
+        return f"Error summarizing text. Summary: {summary_string}", "summary error"
+
+async def summarize_article(websocket, lc_interface, title, help=False) -> tuple[str,str]:
+    if help == True:
+        return "Summarize an article from the configured wiki.", "help"
+
+    available_articles = lc_interface.get_list_of_articles()
+    if title not in available_articles:
+        return "Article not found.", "summary error"
+
+    article: WikiData = lc_interface.get_article(title)
+    summary_string, status = await summarize(websocket, lc_interface, text=article.content, title=title)
+    return summary_string, status
+    
 def read_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     if help == True:
         return "Read a summary into chat history.", "help"
@@ -245,9 +288,10 @@ async def wiki(websocket, lc_interface, wiki, query, should_save=False, return_f
 
     if should_save: # This should probably also save the summary in a separate file
         lc_interface.append_article(data) # Save to database
-        filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
-        with open(filepath, "w") as file:
-            file.write(data.content)
+
+        # filepath = f"sample_data/{data.title.replace(' ', '_')}_wikidownload.txt"
+        # with open(filepath, "w") as file:
+        #     file.write(data.content)
     return json.dumps(return_object), "wiki"
 
 def get_available_files_str(websocket, lc_interface, help=False) -> tuple[str, str]:
@@ -326,6 +370,8 @@ available_request_functions = {
     "set_secret_configuration": set_secret_configuration,
     "configure": set_configuration,
     "summarize": summarize,
+    "summarize_article": summarize_article,
+    "summarize_file": summarize_file,
     "get_summary": get_summary,
     "get_summaries": get_summaries,
     "read_summary": read_summary,

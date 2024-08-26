@@ -312,7 +312,7 @@ class langchain_interface():
 
         return _embeddings
 
-    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6) -> tuple[list, Summary]:
+    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="") -> tuple[list, Summary]:
         time_start = time.time()
         config = self.get_config()
         system_prompts = self.get_chat_characters()
@@ -336,11 +336,13 @@ class langchain_interface():
         assistant_message = await chain.ainvoke(_history) # Run the pipeline
 
         # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
-        summary_result = parse_llm_output(Summary, assistant_message)
+        summary_result = parse_llm_output(Summary, assistant_message, summary_title=title)
         if summary_result["error"]:
             print("Exiting...")
             return history, None
         summary_obj = summary_result["object"]
+        if title != "":
+            summary_obj.title = title
 
         for i in range(len(summary_obj.summary)):
             embeds: list = self.langchain_embed_sentence(summary_obj.summary[i].idea)
