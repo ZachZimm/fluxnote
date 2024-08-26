@@ -207,7 +207,7 @@ async def summarize_article(websocket, lc_interface, title, help=False) -> tuple
     article: WikiData = lc_interface.get_article(title)
     summary_string, status = await summarize(websocket, lc_interface, text=article.content, title=title)
     return summary_string, status
-    
+
 def read_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     if help == True:
         return "Read a summary into chat history.", "help"
@@ -247,6 +247,19 @@ def get_article(websocket, lc_interface, title, help=False) -> tuple[str, str]:
         return "Get the article with the specified name.", "help"
     article = lc_interface.get_article_str(title)
     return article, "article"
+
+def read_article(websocket, lc_interface, title, include_content=True, include_summary=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Read an article's content into chat history. include_content and include_summary flags nidify behaviour", "help"
+
+    article = lc_interface.get_article(title)
+    new_content = ""
+    if include_content:
+        new_content += article.content
+    if include_summary:
+        new_content += article.summary
+    lc_interface.append_history(new_content) # Save to history
+    return f"Article {title} added to history", "status"
 
 async def wiki_search(websocket, lc_interface, wiki, query, help=False) -> tuple[str, str]:
     if help == True:
@@ -377,6 +390,7 @@ available_request_functions = {
     "read_summary": read_summary,
     "get_articles": get_articles,
     "get_article": get_article,
+    "read_article": read_article,
     "wiki_search": wiki_search,
     "wiki": wiki,
     "wiki_results": get_wiki_results,

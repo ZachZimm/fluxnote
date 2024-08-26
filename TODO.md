@@ -91,6 +91,10 @@
   - This would be a very interesting feature if it pans out
   - The LLM would be given a list of ideas and would be asked a list of new ideas using those as a starting point
 
+- [ ] Given a working knowledge base, use the LLM to suggest areas where information density seems to be low / lacking
+    - This seems like it will be a real test of the smaller models
+    - Hopefully it isn't out of reach of the larger models
+
 - [ ] Design an interesting way of displaying data in a GUI
   - Some way of meaningfully represetning the potentially representing the many ideas and summaries without overwhelming the user
   - This will likely involve some kind of graph
