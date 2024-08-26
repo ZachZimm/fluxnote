@@ -10,6 +10,10 @@ class WebSocketManager: NSObject, ObservableObject {
     @Published var latestResponse: String = ""
     @Published var isResponding: Bool = false
 
+    private var reconnectAttempts: Int = 0
+    private let maxReconnectAttempts: Int = 5
+    private let reconnectDelay: TimeInterval = 2.0 
+
     override init() {
         super.init()
         connect()
@@ -25,14 +29,18 @@ class WebSocketManager: NSObject, ObservableObject {
     }
 
     func sendMessage(_ message: String) {
-        // parse JSON from message
-        let messageObj: [String : Any] = try! JSONSerialization.jsonObject(with: message.data(using: .utf8)!, options: []) as! [String: Any]
+        guard let webSocketTask = webSocketTask else {
+            print("WebSocket is not connected.")
+            return
+        }
+        
+        let messageObj = try! JSONSerialization.jsonObject(with: message.data(using: .utf8)!, options: []) as! [String: Any]
         if messageObj["func"] as! String == "chat" {
             chatLog.append(messageObj["message"] as! String)
         }
         sentMessageLog.append(message)
         let message = URLSessionWebSocketTask.Message.string(message)
-        webSocketTask?.send(message) { error in
+        webSocketTask.send(message) { error in
             if let error = error {
                 print("WebSocket send error: \(error)")
             }
@@ -41,9 +49,11 @@ class WebSocketManager: NSObject, ObservableObject {
     
     private func receiveMessage() {
         webSocketTask?.receive { [weak self] result in
+            guard let self = self else { return }
             switch result {
             case .failure(let error):
                 print("WebSocket receive error: \(error)")
+                self.reconnect()
             case .success(let message):
                 switch message {
                 case .string(let text):
@@ -55,23 +65,23 @@ class WebSocketManager: NSObject, ObservableObject {
                         let mode: String = textObj["mode"] as! String
 
                         if mode == "chat streaming" {
-                            if self?.isResponding == false { // Start of a new message
-                                self?.latestResponse = ""
-                                self?.chatLog.append("")
+                            if self.isResponding == false { // Start of a new message
+                                self.latestResponse = ""
+                                self.chatLog.append("")
                             }
-                            self?.isResponding = true
-                            let chatLogLength: Int = self?.chatLog.count ?? 0
+                            self.isResponding = true
+                            let chatLogLength: Int = self.chatLog.count
                             if message != "|" {
-                                self?.chatLog[chatLogLength - 1] += message
-                                self?.latestResponse += message
+                                self.chatLog[chatLogLength - 1] += message
+                                self.latestResponse += message
                             }
                         }
                         else if mode == "chat streaming finished" {
-                            self?.isResponding = false
+                            self.isResponding = false
                         }
                         else {
-                            self?.recievedMessageLog.append(mode + ":")
-                            self?.recievedMessageLog.append(message)
+                            self.recievedMessageLog.append(mode + ":")
+                            self.recievedMessageLog.append(message)
                         }
                     }
                 case .data(let data):
@@ -79,25 +89,45 @@ class WebSocketManager: NSObject, ObservableObject {
                 @unknown default:
                     fatalError("Received unknown message type")
                 }
-                self?.receiveMessage() // Continue listening for more messages
+                self.receiveMessage() // Continue listening for more messages
             }
         }
     }
 
     func disconnect() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
+        isConnected = false
+        webSocketTask = nil
+    }
+
+    private func reconnect() {
+        guard reconnectAttempts < maxReconnectAttempts else {
+            print("Max reconnect attempts reached. Giving up.")
+            return
+        }
+        
+        reconnectAttempts += 1
+        isConnected = false
+        print("Attempting to reconnect in \(reconnectDelay) seconds... (Attempt \(reconnectAttempts))")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + reconnectDelay) { [weak self] in
+            self?.connect()
+        }
     }
 }
 
 extension WebSocketManager: URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
         print("WebSocket connection opened")
+        reconnectAttempts = 0
+
         let loginMessage: String = "{\"func\": \"login\", \"username\": \"test_user\"}"
         sendMessage(loginMessage)
-
     }
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         print("WebSocket connection closed")
+        isConnected = false
+        reconnect()
     }
 }

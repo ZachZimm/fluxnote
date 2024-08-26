@@ -12,7 +12,7 @@ struct ContentView: View {
     @StateObject private var webSocketManager = WebSocketManager()
     private var speechSynthesisManager = SpeechSynthesisManager()
     @StateObject private var speechTranscriptionManager = SpeechTranscriptionManager()
-
+    @State private var isAtBottom = true
     var body: some View {
 
         VStack {
@@ -22,38 +22,34 @@ struct ContentView: View {
                 } else { return "Not connected" }
             }
 
-        Text(connectionText)
+            Text(connectionText)
             HStack {
                 HStack {
                     HStack {
                         Text("Func:")
                         TextField("Enter function", text: $function)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onSubmit { sendJsonMessage() }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onSubmit { sendJsonMessage() }
                     }
                     HStack {
                         Text("Field:")
                         TextField("Enter field", text: $fieldName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onSubmit { sendJsonMessage() }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onSubmit { sendJsonMessage() }
                     }
-                }.padding()  
+                }.padding()
 
                 VStack {
-                    // Verify button seems to be unnessary
-                    // Button(action: { verifySpeechRecognition() }
-                    //     ) { Text("Verify") }
                     Button(action: { startRecording() }
-                        ) { Text("Start Dictation") }
+                    ) { Text("Start Dictation") }
                     Button(action: { stopRecording() }
-                        ) { Text("Stop Dictation") }
+                    ) { Text("Stop Dictation") }
                 }
                 VStack {
-                    
                     Button(action: { sendJsonMessage() }
                     ) { Text("Send") }
                     Button(action: { speakText() }
-                ) { Text("Speak") }    
+                    ) { Text("Speak") }
                 }
 
             }
@@ -61,64 +57,88 @@ struct ContentView: View {
             VStack {
                 Text("Message:")
                 VStack {
-                TextEditor(text: $text)
-                .frame(width: 900, height: 75)
-                
-                .cornerRadius(6)
-                .padding(.all, 3.0)
-                .onChange(of: speechTranscriptionManager.currentTranscription, perform: { value in
-                        text = value
-                    })
-                .onSubmit { sendJsonMessage() }
-                } 
+                    TextEditor(text: $text)
+                        .frame(width: 900, height: 75)
+                        .cornerRadius(6)
+                        .padding(.all, 3.0)
+                        .onChange(of: speechTranscriptionManager.currentTranscription, perform: { value in
+                            text = value
+                        })
+                        .onSubmit { sendJsonMessage() }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.gray, lineWidth: 2)
-                )}
-                .padding()
+                )
+            }
+            .padding()
 
             VStack {
-                
-                ScrollView {
-                    VStack(alignment: .leading) {
-                        ForEach(webSocketManager.chatLog, id: \.self) { message in
-                            Text(message + "\n\n")
-                                .padding(.vertical, 2)
-                            .textSelection(.enabled)
-                            Divider()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            ForEach(webSocketManager.chatLog, id: \.self) { message in
+                                Text(message + "\n\n")
+                                    .padding(.vertical, 2)
+                                    .textSelection(.enabled)
+                                    .id(message) // Assign an ID to each message
+                                Divider()
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: webSocketManager.chatLog) { _ in
+                        if let lastMessage = webSocketManager.chatLog.last {
+                            proxy.scrollTo(lastMessage, anchor: .bottom)
                         }
                     }
-                    .padding()
                 }
             }
             .frame(width: 800, height: 350)
             .border(Color.gray, width: 1)
-            .padding()  
+            .padding()
 
             HStack {
-                ScrollView {
-                    VStack(alignment: .leading) {
-                        ForEach(webSocketManager.sentMessageLog, id: \.self) { message in
-                            Text(message)
-                                .padding(.vertical, 2)
-                            Divider()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            ForEach(webSocketManager.sentMessageLog, id: \.self) { message in
+                                Text(message)
+                                    .padding(.vertical, 2)
+                                    .id(message) // Assign an ID to each message
+                                Divider()
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: webSocketManager.sentMessageLog) { _ in
+                        if let lastMessage = webSocketManager.sentMessageLog.last {
+                            // only do this if the scroll view is already at the very bottom
+                            proxy.scrollTo(lastMessage, anchor: .bottom)
                         }
                     }
-                    .padding()
                 }
                 .border(Color.gray, width: 1)
 
-                ScrollView {
-                    VStack(alignment: .leading) {
-                        ForEach(webSocketManager.recievedMessageLog, id: \.self) { message in
-                            Text(message)
-                                .padding(.vertical, 2)
-                            Divider()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            ForEach(webSocketManager.recievedMessageLog, id: \.self) { message in
+                                Text(message)
+                                    .padding(.vertical, 2)
+                                    .id(message) // Assign an ID to each message
+                                Divider()
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: webSocketManager.recievedMessageLog) { _ in
+                        if let lastMessage = webSocketManager.recievedMessageLog.last {
+                            proxy.scrollTo(lastMessage, anchor: .bottom)
                         }
                     }
-                    .padding()
                 }
-                .border(Color.gray, width: 1)                
+                .border(Color.gray, width: 1)
             }
         }
         .padding()
@@ -127,7 +147,7 @@ struct ContentView: View {
     private func speakText() {
         // set text equal to all of chatLog as a string
         let _text: String = webSocketManager.latestResponse
-        speechSynthesisManager.useSiriVoice = true 
+        speechSynthesisManager.useSiriVoice = true
         speechSynthesisManager.speak(_text)
     }
 
