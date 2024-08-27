@@ -315,6 +315,10 @@ class langchain_interface():
     async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
+        config = self.get_config()
+        system_prompts = self.get_chat_characters()
+        max_tokens = 500
+        temperature = 0.2
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else:

@@ -368,7 +368,7 @@ def get_help(websocket, lc_interface, help=False) -> tuple[str, str]:
     help_message += json.dumps(get_functions(websocket, lc_interface, help=True)[0])
     return help_message, "help"
 
-await def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, str]:
+async def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Test the idea verification function.", "help"
     # This function will be used to test the idea verification function
