@@ -346,6 +346,7 @@ class langchain_interface():
 
         # pass the history to the model and parse the Idea object it returns
         # _history.append(HumanMessage(content=source_text))
+        print(f"Verified Idea: {new_idea.idea}")
         return new_idea
 
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="") -> tuple[list, Summary]:

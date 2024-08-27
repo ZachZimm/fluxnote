@@ -51,7 +51,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             # Call the function with the provided arguments
             func = interactions.available_request_functions[func_name]
             kwargs = {k: v for k, v in data.items() if k != "func"}
-            async_functions = ["chat", "summarize", "summarize_article", "summarize_file"] # Unfortunately some of the functions need to be handled differently. This is a temporary solution and will be refactored.
+            async_functions = ["chat", "summarize", "summarize_article", "summarize_file", "test_verify_idea"] # Unfortunately some of the functions need to be handled differently. This is a temporary solution and will be refactored.
             wiki_functions = ["wiki_search", "wiki_results", "wiki"]
             if func_name in async_functions:
                 response_message, response_mode = await func(websocket, lc_interface, **kwargs)
