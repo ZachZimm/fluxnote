@@ -312,6 +312,42 @@ class langchain_interface():
 
         return _embeddings
 
+    async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
+        # This function should be used to verify the idea and return a corrected version
+        # Or it will return the original idea if it is correct
+        if config['use_openai']:
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
+        else:
+            self.model = ChatOpenAI(
+                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                )
+        parser = StrOutputParser()
+        chain = self.model | parser
+
+        _history = []
+        _history.append(SystemMessage(content=system_prompts["Idea-Verifier"])) # TODO add this prompt
+        json_open= '{": "idea": "'
+        json_close= '"}'
+        verification_prompt = f"Verify that the following idea can indvidually represent a maeningful idea from the source document on its own. Idea:  {json_open}{idea.idea}{json_close} . \n Source Text: {source_text}"
+        _history.append(HumanMessage(content=verification_prompt))
+
+        assistant_message = await chain.invoke(_history)
+        idea_result = parse_llm_output(Idea, assistant_message)
+        if idea_result["error"]:
+            print("Error while verifying idea\n Exiting...")
+            return idea
+        new_idea = idea_result["object"]
+        if not new_idea.idea == idea.idea:
+            new_idea.embedding = self.langchain_embed_sentence(new_idea.idea)
+        else: # The idea was not changed 
+            new_idea.embedding = idea.embedding
+
+        # pass the history to the model and parse the Idea object it returns
+        # _history.append(HumanMessage(content=source_text))
+        return new_idea
+
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="") -> tuple[list, Summary]:
         time_start = time.time()
         config = self.get_config()
