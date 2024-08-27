@@ -368,7 +368,7 @@ def get_help(websocket, lc_interface, help=False) -> tuple[str, str]:
     help_message += json.dumps(get_functions(websocket, lc_interface, help=True)[0])
     return help_message, "help"
 
-await def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, str]:
+async def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
         return "Test the idea verification function.", "help"
     # This function will be used to test the idea verification function
@@ -376,7 +376,7 @@ await def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, st
     ex_idea = ex_summary.summary[0]
     ex_content = lc_interface.get_article("xcode wiki").content
     new_idea = await lc_interface.verify_idea(ex_idea, ex_content)
-    return new_idea.model_dump(), "verified idea"
+    return new_idea.idea, "verified idea"
 
 available_request_functions = {
     "login": login,

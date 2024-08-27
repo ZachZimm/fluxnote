@@ -94,7 +94,9 @@ class langchain_interface():
             "system_prompts": self.system_prompts
             }
         filter = {"userid": self.userid}
-        update = {"$setOnInsert": document} # This will only insert the document if it doesn't exist
+        # update = {"$setOnInsert": document} # This will only insert the document if it doesn't exist
+        # update if this document is different from the one in the database
+        update = {"$set": document}
         result = self.db["config"].update_one(filter, update, upsert=True)
 
         # if there is no history in the database, create it
@@ -315,6 +317,10 @@ class langchain_interface():
     async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
+        config = self.get_config()
+        system_prompts = self.get_chat_characters()
+        max_tokens = 500
+        temperature = 0.2
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else:
@@ -333,7 +339,7 @@ class langchain_interface():
         verification_prompt = f"Verify that the following idea can indvidually represent a maeningful idea from the source document on its own. Idea:  {json_open}{idea.idea}{json_close} . \n Source Text: {source_text}"
         _history.append(HumanMessage(content=verification_prompt))
 
-        assistant_message = await chain.invoke(_history)
+        assistant_message = await chain.ainvoke(_history)
         idea_result = parse_llm_output(Idea, assistant_message)
         if idea_result["error"]:
             print("Error while verifying idea\n Exiting...")
