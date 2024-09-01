@@ -266,16 +266,10 @@ async def send_messages(websocket) -> None: # consider checking for success and 
 
             message_object['func'] = "summarize"
             message_object['file_index'] = str(command_list[1])
-
-        elif 'get_summary' == user_command: # Get summary displays the summary for the user
-            message_object['func'] = "get_summary"
-            # prompt user for title
+        elif '_summary' in user_command: # catches 'get_summary', 'read_summary', 'verify_summary'
+            message_object['func'] = user_command
             title = await aioconsole.ainput("Enter the title: ")
-            message_object['title'] = title.strip()
-        elif 'read_summary' == user_command:
-            message_object['func'] = "read_summary"
-            title = await aioconsole.ainput("Enter the title: ")
-            message_object['title'] = title.strip()
+            message_object['title'] = title.strip().lower()
         elif 'get_summaries' == user_command:
             message_object['func'] = "get_summaries"
         elif 'get_article' == user_command:

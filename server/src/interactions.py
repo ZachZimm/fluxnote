@@ -4,13 +4,11 @@
 # The functions should be added to the available_request_functions dictionary at the bottom of the file to be accessible by the server
 
 import os
+import time
 import json
-# from langchain_interface import langchain_interface
 import server_info
 from fastapi import WebSocket
 from models.WikiData import WikiData
-
-
 
 async def send_ws_message(websocket: WebSocket, message: str, mode: str = "default") -> None:
     await websocket.send_json({"message": message, "mode": mode})
@@ -378,6 +376,21 @@ async def test_verify_idea(websocket, lc_interface, help=False) -> tuple[str, st
     new_idea = await lc_interface.verify_idea(ex_idea, ex_content)
     return new_idea.idea, "verified idea"
 
+async def verify_summary(websocket, lc_interface, title, append=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Verify the ideas in a summary.", "help"
+    time_start = time.time()
+    
+    summary = lc_interface.get_summary(title)
+    content = lc_interface.get_article(title).content
+    print(f"{lc_interface.userid} requested to verify the summary of {title}, which has {len(summary.summary)} ideas.")
+    new_summary = await lc_interface.verify_summary(summary, content)
+    append = True # this is a temporary approach, ideally the new verion will always be an improvement, but that is probably too optimistic
+    if append:
+        appended = lc_interface.append_summary(new_summary)
+    print(f"Summary verified in {round(time.time() - time_start, 2)} seconds.")
+    return json.dumps(new_summary.model_dump()), "verified summary"
+
 available_request_functions = {
     "login": login,
     "chat": chat,
@@ -401,6 +414,7 @@ available_request_functions = {
     "get_articles": get_articles,
     "get_article": get_article,
     "test_verify_idea": test_verify_idea,
+    "verify_summary": verify_summary,
     "read_article": read_article,
     "wiki_search": wiki_search,
     "wiki": wiki,

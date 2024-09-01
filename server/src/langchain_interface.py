@@ -320,7 +320,7 @@ class langchain_interface():
         config = self.get_config()
         system_prompts = self.get_chat_characters()
         max_tokens = 500
-        temperature = 0.2
+        temperature = 0.5
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else:
@@ -352,8 +352,22 @@ class langchain_interface():
 
         # pass the history to the model and parse the Idea object it returns
         # _history.append(HumanMessage(content=source_text))
-        print(f"Verified Idea: {new_idea.idea}")
+        print(f"Original idea:\t{idea.idea}")
+        if new_idea.idea.strip() != idea.idea.strip():
+            print(f"--New idea:\t{idea.idea}")
+            # use sets to find the difference between the two ideas
+            split_1 = set(idea.idea.split())
+            split_2 = set(new_idea.idea.split())
+            print(f"Difference:\t{split_1.difference(split_2)}")
         return new_idea
+    
+    async def verify_summary(self, summary: Summary, source_text: str) -> Summary:
+        i = 0
+        for idea in summary.summary:
+            summary.summary[i] = await self.verify_idea(idea, source_text)
+            i += 1
+
+        return summary
 
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="") -> tuple[list, Summary]:
         time_start = time.time()
