@@ -8,7 +8,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from utils import read_config, parse_llm_output
 from fastapi import WebSocket
-from models.Summary import Summary, Idea
+from models.Summary import Summary, Idea, IdeaVerificationBool
 from models.WikiData import WikiData
 from pymongo import MongoClient
 import embeddings
@@ -319,8 +319,9 @@ class langchain_interface():
         # Or it will return the original idea if it is correct
         config = self.get_config()
         system_prompts = self.get_chat_characters()
-        max_tokens = 500
-        temperature = 0.5
+        max_tokens = 180 
+        temperature = 0.6
+        openai_model = "gpt-4o-mini" # will be configurable in the future
         if config['use_openai']:
             self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
         else:
@@ -333,10 +334,42 @@ class langchain_interface():
         chain = self.model | parser
 
         _history = []
-        _history.append(SystemMessage(content=system_prompts["Idea-Verifier"])) # TODO add this prompt
+
+        # Build a prompt for boolean prompt verification
+        # This will consist of a system message about determining whether the provided idea stands on its own, without providing the source text
+        # If false, then a much stronger worded version of the Idea-Verifier prompt will be used which instructs the model specifically to correct the idea- rather than determine if it is correct and potentially provide a new idea
+        _history.append(SystemMessage(content=system_prompts["Idea-Verifier-Bool"]))
+        assistant_message = await chain.ainvoke(_history)
+        initial_verification_result_json = parse_llm_output(IdeaVerificationBool, assistant_message)
+        if initial_verification_result_json["error"]:
+            print("Error while verifying idea\n Exiting...")
+            return idea
+        initial_verification_result = initial_verification_result_json["object"]
+
+        print(initial_verification_result.model_dump())
+        if initial_verification_result.needs_work == False:
+            print(f"--Good idea:\t{idea.idea}")
+            return idea
+
+
+        temperature = 1.0
+        max_tokens = 500
+        if config['use_openai']: # TODO This clearly needs to be refactored
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
+        else:
+            self.model = ChatOpenAI(
+                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                )
+        parser = StrOutputParser()
+        chain = self.model | parser
+
+        _history = [] # Reset the working history for the next prompt
+        _history.append(SystemMessage(content=system_prompts["Idea-Verifier"]))
         json_open= '{": "idea": "'
         json_close= '"}'
-        verification_prompt = f"Verify that the following idea can indvidually represent a maeningful idea from the source document on its own. Idea:  {json_open}{idea.idea}{json_close} . \n Source Text: {source_text}"
+        verification_prompt = f"This is the idea that has been found to be lacking: {json_open}{idea.idea}{json_close} . And this is how it has been found to be lacking / can be improved, {initial_verification_result.improvement} \n Source Text: {source_text}"
         _history.append(HumanMessage(content=verification_prompt))
 
         assistant_message = await chain.ainvoke(_history)
@@ -344,7 +377,7 @@ class langchain_interface():
         if idea_result["error"]:
             print("Error while verifying idea\n Exiting...")
             return idea
-        new_idea = idea_result["object"]
+        new_idea: Idea = idea_result["object"]
         if not new_idea.idea == idea.idea:
             new_idea.embedding = self.langchain_embed_sentence(new_idea.idea)
         else: # The idea was not changed 
@@ -356,9 +389,9 @@ class langchain_interface():
         if new_idea.idea.strip() != idea.idea.strip():
             print(f"--New idea:\t{idea.idea}")
             # use sets to find the difference between the two ideas
-            split_1 = set(idea.idea.split())
-            split_2 = set(new_idea.idea.split())
-            print(f"Difference:\t{split_1.difference(split_2)}")
+            # split_1 = set(idea.idea.split())
+            # split_2 = set(new_idea.idea.split())
+            # print(f"Difference:\t{split_1.difference(split_2)}")
         return new_idea
     
     async def verify_summary(self, summary: Summary, source_text: str) -> Summary:

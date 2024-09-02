@@ -28,10 +28,10 @@
         - Save behaviour on wikipedia download 
     - Implement a new way to read text documents into the database using the existing method
 
-- [ ] Implement a routine to verify the quality of a summary
+- [x] Implement a routine to verify the quality of a summary
   - Not sure whether this run upon summary creation, or only when requested
 
-- [ ] Write a routine to check / rewrite individual ideas
+- [x] Write a routine to check / rewrite individual ideas
     - This should give the LLM both the original document, as well as the idea
     - The LLM will be instructed to evaluate the idea without the context of the others and re-write the idea if it is not individually meaningful.
         - This may be a 2 step process where the first checks whether a re-write is nessecary and the second performs the rewrite
