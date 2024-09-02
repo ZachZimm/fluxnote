@@ -48,7 +48,7 @@
         - opt: reliability
             - should the llm doubt the claims in the document or treat them in a particular way?
         - opt: context
-            - additional context that should be taken into account when generating a summar of this note
+            - additional context that should be taken into account when generating a summary of this note
 
 - [x] Add a server-side command history
     - Clients should grab this on login and update it independently
@@ -67,7 +67,12 @@
                     - tags could be like: "news, technology, hardware, GPU, NVIDIA"
                         - This would catch queries at many levels of specificity 
                             - would be a pain to do that manually, no doubt we will need an LLM routine for this, along with a model most likely
-- [ ] Learn about knowledge graphs proper
+
+- [ ] FEATURE GOAL: Have a conversation with the LLM with user-specified context.
+    - Everything above should be checked off before this is complete
+    - Not sure how this context will be defined
+        - It may just be a list of tags/categories at first
+
 - [ ] Implement a graph database (if I need to!)
     - There will be at least 2 databases
         - Summary database
@@ -82,10 +87,18 @@
                 - Or, I may be overestimating the amount of compute involved in say 30,000 similarity computations (wild guess of a number). We're currently using 768 dimension embeddings. 758 x 30,000 = 23 M. Multiply that by the number of ideas in the summary (15-40) and that doesn't look so terrible. I am not sure if `embedding_size x num_embeddings` represents the computation time very well though.
                 - Maybe this would be a good time to learn about using C / C++ in python. Very likely though, the most obvious way of doing it (numpy) will already drop into C / C++.
 
-- [ ] FEATURE GOAL: Have a conversation with the LLM with user-specified context.
-    - Everything above should be checked off before this is complete
-    - Not sure how this context will be defined
-        - It may just be a list of tags/categories at first
+- [ ] Sync front-end user command history with back-end user command history
+    - Implement up-arrow behaviour
+
+- [ ] Use the LLM to 'highlight' important ideas in source documents
+    - I'm not sure how this will be done
+    - One option would be to simply use markdown or some similar approach.
+    - We could also instruct the llm to use an HTML-like tag. `<hilite> </hilite>` or something
+
+- [ ] Usefully render that highlighted information in a GUI front end.
+    - This seems like a novel feature to me, but I haven't looked for it either.
+        - Could be legitimately useful too, for someone with too many low-priority documents
+            - or someone with a lot of faith in their LLM choice
 
 - [ ] Look into using to LLM to generate second-order ideas
   - This would be a very interesting feature if it pans out
@@ -132,6 +145,29 @@
     - If the news item is relevant, then automatically summarize it, categorize it in the database, and create vector relationships
     - News items may need their own model, as a timestamp is important so that the LLM can easily be told X happened before Y.
 
+- [ ] Implement a server-side audio-to-text component
+    - This enables using source materials like online lectures, youtube videos, and podcasts
+    - This will involve implementing a good mechanisim for loading the audio, whether from a file, url, RSS (?), or otherwise.
+    - This should be optional, as it would likely involve running Whisper, which can use a few GB of vram when undistilled and using the large variant.
+        - The model / provider will be configurable though. This may be a seperate server / microservice
+    - This could also be used as a TTS provider for clients, assuming it is enabled on the server
+    - Not yet sure about whether to add streaming capability.
+
+- [ ] Implement a historical record, both going forward and backward.
+    - This seems like a hugely ambitious idea in concept, but somewhat less so in terms of implementation
+        - MongoDB may prove to be an issue for this, as a 'historical record' could get pretty big.
+            - Consider trying to build a comprehensive knowledge base of events worldwide in the single year of 1848. The list of facts would be immense, as there are books upon books of recorded information about that single year.
+        - A complete implementation should somehow take account of indivdual years' events, people and their doings, as well as a less date-dependant notion of events to provide further context to recorded facts.
+            - This introduces a serious and undeniable element of subjectivity
+                - Not nessicarily an issue but it must be adknowledged
+            - The purpose of this is to prevent the LLM from having to infer at inference time more than is nessecary.
+                - This should help us avoid hallucinations and some anachronisims.
+
+- [ ] Implement document creation based on web research.
+    - This will most likely involve the use of an API for good results.
+        - There are API providers that offer search results catered for LLMs, as well as some more generic-use ones.
+    - We could probably build a simple version that does not use any external services too
+
 - [ ] Implement an alternative TTS option
     - the `edge_tts` package makes an API request to a Bing url. Their TTS processing is really good, fast, and free. Those 3 things don't usually go together so once they realize people have reverse engineered their API and they also start caring about how much that compute costs they might restrict it.
     - There are a number of other TTS options, both paid and locally hostable
@@ -166,3 +202,5 @@
     - this is pretty low priority but it would be useful for the creation of clients.
     - this would dramatically raise bandwith usage
         - possibly storage as well
+    - this could enable the use of the siri voice everywhere, provided a mac is running the server, or a serverlet for this purpose
+        - could possibly be done in a macOS VM as well.
