@@ -282,6 +282,21 @@ class langchain_interface():
     def get_secret_config(self) -> dict:
         # return self.secret_config_json
         return {"message": "Disabled for security"}
+    
+    def create_llm_chain(self, config: dict, max_tokens: int = 600, temperature: float = 0.7, openai_model: str = "gpt-4o-mini"):
+        if config['use_openai']: # TODO This clearly needs to be refactored
+            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
+        else:
+            self.model = ChatOpenAI(
+                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                )
+        parser = StrOutputParser()
+        chain = self.model | parser
+        print(f'Type of chain: {type(chain)}')
+        return chain
+
 
     async def stream_langchain_chat_loop_async_generator(self, history: list = [], max_tokens: int = 600, temperature: float = 0.7) -> StreamingStdOutCallbackHandler:
         config = self.get_config()
@@ -290,18 +305,7 @@ class langchain_interface():
         _history = history.copy()
         _history.append(SystemMessage(content=character_prompt))
 
-        if config['use_openai']:
-            openai_model = "gpt-4o-mini"
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model)
-        else:
-            self.model = ChatOpenAI(base_url=config['llm_base_url']+'/v1',
-                                api_key=self.secret_config_json['openai_api_key'],
-                                max_tokens=max_tokens,
-                                temperature=temperature
-                                )
-
-        parser = StrOutputParser()
-        chain = self.model | parser
+        chain = self.create_llm_chain(config, max_tokens, temperature) 
         return chain.astream(_history)
 
     def langchain_embed_sentence(self, sentence: str) -> list[float]:
@@ -321,18 +325,8 @@ class langchain_interface():
         system_prompts = self.get_chat_characters()
         max_tokens = 180 
         temperature = 0.6
-        openai_model = "gpt-4o-mini" # will be configurable in the future
-        if config['use_openai']:
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
-        else:
-            self.model = ChatOpenAI(
-                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                )
-        parser = StrOutputParser()
-        chain = self.model | parser
 
+        chain = self.create_llm_chain(config, max_tokens, temperature)        
         _history = []
 
         # Build a prompt for boolean prompt verification
@@ -346,26 +340,15 @@ class langchain_interface():
             return idea
         initial_verification_result = initial_verification_result_json["object"]
 
-        print(initial_verification_result.model_dump())
         if initial_verification_result.needs_work == False:
-            print(f"--Good idea:\t{idea.idea}")
             return idea
-
 
         temperature = 1.0
         max_tokens = 500
-        if config['use_openai']: # TODO This clearly needs to be refactored
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
-        else:
-            self.model = ChatOpenAI(
-                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                )
-        parser = StrOutputParser()
-        chain = self.model | parser
-
+        # Rebuild the chain with the new parameters
+        chain = self.create_llm_chain(config, max_tokens, temperature)
         _history = [] # Reset the working history for the next prompt
+
         _history.append(SystemMessage(content=system_prompts["Idea-Verifier"]))
         json_open= '{": "idea": "'
         json_close= '"}'
@@ -383,15 +366,6 @@ class langchain_interface():
         else: # The idea was not changed 
             new_idea.embedding = idea.embedding
 
-        # pass the history to the model and parse the Idea object it returns
-        # _history.append(HumanMessage(content=source_text))
-        print(f"Original idea:\t{idea.idea}")
-        if new_idea.idea.strip() != idea.idea.strip():
-            print(f"--New idea:\t{idea.idea}")
-            # use sets to find the difference between the two ideas
-            # split_1 = set(idea.idea.split())
-            # split_2 = set(new_idea.idea.split())
-            # print(f"Difference:\t{split_1.difference(split_2)}")
         return new_idea
     
     async def verify_summary(self, summary: Summary, source_text: str) -> Summary:
@@ -410,19 +384,9 @@ class langchain_interface():
         _history.append(SystemMessage(content=system_prompts["Document-Summarizer"]))
         _history.append(HumanMessage(content=text))
 
-        openai_model = "gpt-4o-mini" # will be configurable in the future
-        if config['use_openai']:
-            self.model = ChatOpenAI(api_key=self.secret_config_json['openai_api_key'], max_tokens=max_tokens, temperature=temperature, model=openai_model, timeout=None)
-        else:
-            self.model = ChatOpenAI(
-                base_url=config['llm_base_url']+'/v1', api_key=self.secret_config_json['openai_api_key'],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                )
-        parser = StrOutputParser()
-        chain = self.model | parser # Build the pipeline
         assistant_message = ''
         print('summarizing...')
+        chain = self.create_llm_chain(config, max_tokens, temperature)
         assistant_message = await chain.ainvoke(_history) # Run the pipeline
 
         # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
