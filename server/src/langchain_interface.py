@@ -295,7 +295,7 @@ class langchain_interface():
                 )
         parser = StrOutputParser()
         chain = self.model | parser
-        print(f'Type of chain: {type(chain)}')
+        # type is langchain_core.runnables.base.RunnableSequence
         return chain
 
 
@@ -406,6 +406,7 @@ class langchain_interface():
             embeds: list = self.langchain_embed_sentence(summary_obj.summary[i].idea)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
             summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
+            summary_obj.summary[i].tags = tags # Add the tags to the summary object
             await asyncio.sleep(1e-4) # Hack to prevent blocking
 
         runtime = time.time() - time_start
