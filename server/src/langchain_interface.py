@@ -227,7 +227,8 @@ class langchain_interface():
             return summary
         summary_obj = Summary(
             title=summary["title"],
-            summary=summary["summary"]
+            summary=summary["summary"],
+            tags=summary["tags"]
         )
         return summary_obj
 
@@ -236,7 +237,7 @@ class langchain_interface():
 
     def append_summary(self, summary: Summary) -> str:
         # update the database:
-        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "userid": self.userid}}
+        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "tags": summary.tags, "userid": self.userid}}
         result = self.db["summary"].update_one({"title": summary.title}, update, upsert=True)
         print(f"Summary: {summary.title} pushed to the database")
         return summary.title
@@ -376,7 +377,10 @@ class langchain_interface():
 
         return summary
 
-    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="") -> tuple[list, Summary]:
+    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="", tags=[]) -> tuple[list, Summary]:
+        if len(tags) == 0:
+            if 'wiki' in title.lower():
+                tags.append("wikipedia")
         time_start = time.time()
         config = self.get_config()
         system_prompts = self.get_chat_characters()
@@ -390,7 +394,7 @@ class langchain_interface():
         assistant_message = await chain.ainvoke(_history) # Run the pipeline
 
         # The LLM often adds commentary or misformats despite our requests, so extract the JSON response
-        summary_result = parse_llm_output(Summary, assistant_message, summary_title=title)
+        summary_result = parse_llm_output(Summary, assistant_message, summary_title=title, summary_tags=tags)
         if summary_result["error"]:
             print("Exiting...")
             return history, None
