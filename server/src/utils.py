@@ -98,6 +98,8 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_titl
         
         # Parse the JSON string into a dictionary
         summary_dict = json.loads(llm_output.strip())
+
+        # Add the fields that the LLM does not generate in its initial output
         summary_dict["title"] = summary_title
         summary_dict["tags"] = summary_tags
         # Validate and create the model object

@@ -251,7 +251,13 @@ async def send_messages(websocket) -> None: # consider checking for success and 
         elif 'help' == user_command:
             message_object['func'] = "help"
 
-        elif 'summarize' in user_command:
+        elif 'summarize_article' in user_command:
+            command_list = user_command.split(" ")
+            title = await aioconsole.ainput("Enter the title: ")
+            message_object['func'] = "summarize_article"
+            message_object['title'] = title.strip().lower()
+
+        elif 'summarize' in user_command: # Now deprecated
             command_list = user_command.split(" ")
             if len(command_list) == 1:
                 file_index = await aioconsole.ainput("Enter the file index: ")

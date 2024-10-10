@@ -322,6 +322,7 @@ class langchain_interface():
     async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
+        tags = idea.tags
         config = self.get_config()
         system_prompts = self.get_chat_characters()
         max_tokens = 180 
@@ -367,6 +368,9 @@ class langchain_interface():
         else: # The idea was not changed 
             new_idea.embedding = idea.embedding
 
+        # TODO add a routine to further tag the enhanced idea
+        new_idea.tags = tags
+
         return new_idea
     
     async def verify_summary(self, summary: Summary, source_text: str) -> Summary:
@@ -406,7 +410,7 @@ class langchain_interface():
             embeds: list = self.langchain_embed_sentence(summary_obj.summary[i].idea)
             # The above function should probably be async but I got an error related to returning a list from an async function. There could be issues if the server is not local / under load
             summary_obj.summary[i].embedding = embeds # Add the embeddings to the summary object
-            summary_obj.summary[i].tags = tags # Add the tags to the summary object
+            summary_obj.summary[i].tags = tags
             await asyncio.sleep(1e-4) # Hack to prevent blocking
 
         runtime = time.time() - time_start
