@@ -217,8 +217,8 @@ def read_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     for idea in summary_json["summary"]:
         i += 1
         summary_string += f"{str(i)}: {idea['idea']} \n"
-
-    lc_interface.append_history(summary_string) # Save to history
+    print(summary_string)
+    lc_interface.append_history(summary_string, history=lc_interface.get_history()) # Save to history
 
     return f"Summary of {summary.title} added to history", "status"
 

@@ -250,7 +250,6 @@ class langchain_interface():
 
     def clear_history(self) -> None:
         self.db["history"].update_one({"userid": self.userid}, {"$set": {"history": "[]"}})
-        self.history = []
 
     def get_history(self, userid: str = "") -> list:
         result = self.db["history"].find_one({"userid": self.userid})
