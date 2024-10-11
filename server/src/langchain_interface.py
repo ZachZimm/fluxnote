@@ -235,6 +235,38 @@ class langchain_interface():
     def get_summary_str(self, title: str) -> str:
         return json.dumps(self.get_summary(title).model_dump())
 
+    def get_summaries_by_tag(self, tag: str) -> list:
+        # retrieves all summaries from the database with a matching userid, as well as the provided tag being present in the tags list
+        summaries = self.db["summary"].find({"userid": self.userid, "tags": tag})
+        summaries_obj = list(summaries)
+        return summaries_obj
+    
+    def get_summaries_by_tag_list(self, tags: list) -> list:
+        # retrieves all summaries from the database with a matching userid, as well as all of the tags in the provided list being present in the tags list
+        summaries = self.db["summary"].find({"userid": self.userid, "tags": {"$all": tags}})
+        summaries_obj = list(summaries)
+        return summaries_obj
+
+    # Consider putting this in the utils file 
+    def summary_list_to_str(self, summaries: list) -> str:
+        summary_str = ""
+        for summary in summaries:
+            summary_str += "\nDocument title: " + summary["title"]
+            i = 0
+            for idea in summary["summary"]:
+                i += 1
+                summary_str += "\n " + str(i) + ": " + idea["idea"]
+
+        return summary_str
+    
+    def get_summaries_by_tag_str(self, tag: str) -> str:
+        summaries = self.get_summaries_by_tag(tag)
+        return self.summary_list_to_str(summaries) 
+
+    def get_summaries_by_tag_list_str(self, tags: list) -> str:
+        summaries = self.get_summaries_by_tag_list(tags)
+        return self.summary_list_to_str(summaries) 
+
     def append_summary(self, summary: Summary) -> str:
         # update the database:
         update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "tags": summary.tags, "userid": self.userid}}
@@ -335,6 +367,11 @@ class langchain_interface():
         # If false, then a much stronger worded version of the Idea-Verifier prompt will be used which instructs the model specifically to correct the idea- rather than determine if it is correct and potentially provide a new idea
         _history.append(SystemMessage(content=system_prompts["Idea-Verifier-Bool"]))
         assistant_message = await chain.ainvoke(_history)
+        if 'True' in assistant_message:
+            assistant_message.replace('True', 'true', 1)
+        elif 'False' in assistant_message:
+            assistant_message.replace('False', 'false', 1)
+
         initial_verification_result_json = parse_llm_output(IdeaVerificationBool, assistant_message)
         if initial_verification_result_json["error"]:
             print("Error while verifying idea\n Exiting...")

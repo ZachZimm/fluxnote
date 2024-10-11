@@ -276,6 +276,10 @@ async def send_messages(websocket) -> None: # consider checking for success and 
             message_object['func'] = user_command
             title = await aioconsole.ainput("Enter the title: ")
             message_object['title'] = title.strip().lower()
+        elif user_command in ["get_summaries_by_tag", "read_summaries_by_tag"]:
+            message_object['func'] = user_command
+            tag = await aioconsole.ainput("Enter the tag: ")
+            message_object['tag'] = tag.strip().lower()
         elif 'get_summaries' == user_command:
             message_object['func'] = "get_summaries"
         elif 'get_article' == user_command:

@@ -217,7 +217,6 @@ def read_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     for idea in summary_json["summary"]:
         i += 1
         summary_string += f"{str(i)}: {idea['idea']} \n"
-    print(summary_string)
     lc_interface.append_history(summary_string, history=lc_interface.get_history()) # Save to history
 
     return f"Summary of {summary.title} added to history", "status"
@@ -227,6 +226,38 @@ def get_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
         return "Get the last summary.", "help"
     summary = lc_interface.get_summary_str(title)
     return summary, "summary"
+
+def get_summaries_by_tag(websocket, lc_interface, tag, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all summaries with a specified tag.", "help"
+    summaries = lc_interface.get_summaries_by_tag_str(tag)
+    return summaries, "status"
+
+def get_summaries_by_tag_list(websocket, lc_interface, tags, strict=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all summaries matching all tags in the list or gets all summaries which match any of the tags in the provided list.", "help"
+    summaries = ""
+    if not strict:
+        for tag in tags:
+            summaries += lc_interface.get_summaries_by_tag_str(tag) + "\n"
+    else:
+        summaries = lc_interface.get_summaries_by_tag_list_str(tags)
+    return summaries, "status"
+
+def read_summaries_by_tag(websocket, lc_interface, tag, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Reads summaries into chat history by tag.", "help"
+    summary_text, _ = get_summaries_by_tag(websocket, lc_interface, tag)
+    lc_interface.append_history(summary_text) # Save to history
+    return f"Summaries with tag {tag} added to history", "status"
+
+def read_summaries_by_tag_list(websocket, lc_interface, tags, strict=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Reads summaries into chat history by tag list. The strict option determines whether all tags must match, or just a single tag must match.", "help"
+    summary_text, _ = get_summaries_by_tag_list(websocket, lc_interface, tags, strict)
+    lc_interface.append_history(summary_text) # Save to history
+    return f"Summaries with tags {', '.join(tags)} added to history", "status"
+    
 
 def get_summaries(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
@@ -248,7 +279,7 @@ def get_article(websocket, lc_interface, title, help=False) -> tuple[str, str]:
 
 def read_article(websocket, lc_interface, title, include_content=True, include_summary=False, help=False) -> tuple[str, str]:
     if help == True:
-        return "Read an article's content into chat history. include_content and include_summary flags nidify behaviour", "help"
+        return "Read an article's content into chat history. include_content and include_summary flags modify behaviour", "help"
 
     article = lc_interface.get_article(title)
     new_content = ""
@@ -410,7 +441,11 @@ available_request_functions = {
     "summarize_file": summarize_file,
     "get_summary": get_summary,
     "get_summaries": get_summaries,
+    "get_summaries_by_tag": get_summaries_by_tag,
+    "get_summaries_by_tag_list": get_summaries_by_tag_list,
     "read_summary": read_summary,
+    "read_summaries_by_tag": read_summaries_by_tag,
+    "read_summaries_by_tag_list": read_summaries_by_tag_list,
     "get_articles": get_articles,
     "get_article": get_article,
     "test_verify_idea": test_verify_idea,
