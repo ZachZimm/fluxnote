@@ -34,6 +34,7 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_titl
     # This function santizes JSON output from the LLM and returns an object of the model type passed in 
     result: Dict[str, Any] = {"error": False, "object": None}
     try:        
+        # print(f"parsing llm_output: {llm_output}")
         llm_output = llm_output.replace('"', "'") # Replace all double quotes with single quotes and then replace them back later
         llm_output = llm_output.replace("' }", '"}')
         llm_output = llm_output[llm_output.find('{'):llm_output.rfind('}')+1]
@@ -95,9 +96,6 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_titl
             if ']' not in llm_output:
                 post = ' ] }'
                 llm_output = llm_output + post
-            # Add the fields that the LLM does not generate in its initial output
-            summary_dict["title"] = summary_title
-            summary_dict["tags"] = summary_tags
         
         elif model_class.__name__ == "TagList":
             # Ensure that all quotes are double quotes
@@ -105,14 +103,20 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_titl
         
         # Parse the JSON string into a dictionary
         summary_dict = json.loads(llm_output.strip())
+
+        # Add the fields that are not returned by the LLM
+        if model_class.__name__ == "Summary":
+            summary_dict["title"] = summary_title
+            summary_dict["tags"] = summary_tags
+
         # Validate and create the model object
         summary_obj = model_class(**summary_dict)
         result["object"] = summary_obj
     
     except Exception as e:
         print(e)
-        print(llm_output)
-        print("\n\nError parsing summary.")
+        print(f"uninterpreted llm_output: {llm_output}")
+        print("\n\nError parsing llm_output.")
         result["error"] = True
     
     return result

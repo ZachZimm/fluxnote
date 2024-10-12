@@ -20,3 +20,4 @@ class Summary(BaseModel):
     title: str
     summary: list[Idea]
     tags: list[str] = []
+    idea_tags: list[str] = []

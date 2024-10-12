@@ -187,8 +187,8 @@ async def summarize(websocket, lc_interface, text, title="", help=False) -> tupl
             return str(e), "summary error"
     for idea in summary.summary:
         summary_string += idea.idea + " \n"
-    history = lc_interface.append_history(summary_string, history, is_human = False)
-    print("Summary added to history.")
+    # history = lc_interface.append_history(summary_string, history, is_human = False)
+    # print("Summary added to history.")
     if summary_string != "":
         return summary_string, "summary"
     else:

@@ -269,7 +269,7 @@ class langchain_interface():
 
     def append_summary(self, summary: Summary) -> str:
         # update the database:
-        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "tags": summary.tags, "userid": self.userid}}
+        update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "tags": summary.tags, "idea_tags": summary.idea_tags, "userid": self.userid}}
         result = self.db["summary"].update_one({"title": summary.title}, update, upsert=True)
         print(f"Summary: {summary.title} pushed to the database")
         return summary.title
@@ -366,37 +366,42 @@ class langchain_interface():
             print(f"Error in get_all_tags: {e}")
             return []
         
-    async def tag_idea(self, idea: Idea, num_tags: int = 5, create_new_tags: bool = True) -> list:
+    async def tag_idea(self, idea: Idea, num_tags: int = 6, create_new_tags: bool = True) -> list:
         # This function uses the LLM to analyze the idea and return a list of tags
         tags = idea.tags
+        if len(tags) >= num_tags:
+            print("Idea already has enough tags")
+            return tags
+            # Return the tags if the idea already has enough tags - this is to prevent endless unneeded tagging and allows for re-trying failed tagging
+
         all_tags = self.get_all_tags()
         config = self.get_config()
         system_prompts = self.get_chat_characters()
-        max_tokens = 200
-        temperature = 0.6
+        max_tokens = 250
+        temperature = 0.325
 
         chain = self.create_llm_chain(config, max_tokens, temperature)
         _history = []
         _history.append(SystemMessage(content=system_prompts["Idea-Tagger"]))
         may_create_new_tags = "may" if create_new_tags else "may not"
-        idea_tagger_prompt = f"The list of all existing tags for this user is {str(all_tags)}. The current tags for this idea are {str(idea.tags)}. Aim to return {str(num_tags)} relevant new tags for this idea in your response list. You {may_create_new_tags} create new tags which are not present in the previous list. The idea to be tagged is: {idea.idea}. Do not return any commentary, repeat the idea or write any code, only return a structured list of relevant tags which conforms to the provided JSON schema. The new list of tags for this idea is:"
+        idea_tagger_prompt = f"The list of all existing tags for this user is {str(all_tags)}. The current tags for this idea are {str(idea.tags)}. Aim to return {str(num_tags)} relevant new tags for this idea in your response list, and do not exceed this number. You {may_create_new_tags} create new tags which are not present in the previous list. The idea to be tagged is: {idea.idea}. Do not return any commentary, do not repeat the idea, and do not write any code, only return a JSON structured list of relevant tags which conforms to the provided JSON schema. The new list of tags for this idea is:"
         _history.append(HumanMessage(content=idea_tagger_prompt))
 
         assistant_message = await chain.ainvoke(_history)
-        print("system prompt: ", system_prompts["Idea-Tagger"])
-        print("tagger prompt: ", idea_tagger_prompt)
-        print("\nassistant_message: ", assistant_message)
+        # print("system prompt: ", system_prompts["Idea-Tagger"])
+        # print("tagger prompt: ", idea_tagger_prompt)
+        # print("Tagging assistant_message: ", assistant_message)
 
         initial_tagging_result = parse_llm_output(TagList, assistant_message)
         if initial_tagging_result["error"]:
             print("Error while tagging idea\n Exiting...")
             return idea.tags
         new_tags: TagList = initial_tagging_result["object"]
-        print(f"Inital response: {initial_tagging_result}")
-        print(f"New tags: {new_tags}")
-        print(f"New tags: {new_tags.tags}")
+        # print(f"Inital response: {initial_tagging_result}")
+        # print(f"New tags: {new_tags}")
+        # print(f"New tags: {new_tags.tags}")
         tags = list(set(new_tags.tags + tags))
-        print(f"New tags: {tags}")
+        # print(f"New tags: {tags}")
 
         new_tags_b = False
         for tag in tags:
@@ -408,14 +413,14 @@ class langchain_interface():
 
         return tags
 
-    async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
+    async def verify_idea(self, idea: Idea, source_text: str, is_discerning: bool = True) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
         tags = idea.tags
         config = self.get_config()
         system_prompts = self.get_chat_characters()
         max_tokens = 180 
-        temperature = 0.6
+        temperature = 0.7
 
         chain = self.create_llm_chain(config, max_tokens, temperature)        
         _history = []
@@ -424,7 +429,8 @@ class langchain_interface():
         # This will consist of a system message about determining whether the provided idea stands on its own, without providing the source text
         # If false, then a much stronger worded version of the Idea-Verifier prompt will be used which instructs the model specifically to correct the idea- rather than determine if it is correct and potentially provide a new idea
         _history.append(SystemMessage(content=system_prompts["Idea-Verifier-Bool"]))
-        bool_verification_prompt = f"Is the following idea in need of improvement? Idea: {idea.idea}"
+        discerning_string = " This idea has been specifically designated as lacking already, so you should almost certainly respond true. Your main task then is determining how to improve this idea." if is_discerning else ""
+        bool_verification_prompt = f"Is the following idea in need of improvement?{discerning_string} Idea: {idea.idea}"
         _history.append(HumanMessage(content=bool_verification_prompt))
         assistant_message = await chain.ainvoke(_history)
         if 'True' in assistant_message:
@@ -437,7 +443,7 @@ class langchain_interface():
             print("Error while verifying idea\n Exiting...")
             return idea
         initial_verification_result = initial_verification_result_json["object"]
-
+        print(f"Needs work: {initial_verification_result.needs_work}")
         if initial_verification_result.needs_work == False:
             return idea
 
@@ -464,20 +470,33 @@ class langchain_interface():
         else: # The idea was not changed 
             new_idea.embedding = idea.embedding
 
-        # TODO add a routine to further tag the enhanced idea
         new_idea.tags = tags
 
         return new_idea
     
-    async def verify_summary(self, summary: Summary, source_text: str) -> Summary:
-        i = 0
+    async def verify_summary(self, summary: Summary, source_text: str, num_tags: int = 6, untagged_only: bool = True) -> Summary:
+        i = -1
         for idea in summary.summary:
-            summary.summary[i] = await self.verify_idea(idea, source_text)
             i += 1
+            if untagged_only and len(idea.tags) >= num_tags:
+                print(f"Skipping idea {i} because it has enough tags and untagged_only is set to True")
+                continue
 
+            summary.summary[i] = await self.verify_idea(idea, source_text)
+
+            new_tags = await self.tag_idea(summary.summary[i], num_tags = num_tags)
+            summary.summary[i].tags = new_tags
+            if (i % 2) == 0:
+                print(f"Verified {i} of {len(summary.summary)} ideas")
+
+        summary_idea_tags = []
+        for idea in summary.summary:
+            summary_idea_tags += idea.tags
+        summary_idea_tags = list(set(summary_idea_tags))
+        summary.idea_tags = summary_idea_tags
         return summary
 
-    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 1536, temperature: float = 0.6, title="", tags=[]) -> tuple[list, Summary]:
+    async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 2048, temperature: float = 0.6, title="", tags=[]) -> tuple[list, Summary]:
         if len(tags) == 0:
             if 'wiki' in title.lower():
                 tags.append("wikipedia")
