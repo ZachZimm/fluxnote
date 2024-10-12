@@ -1,5 +1,9 @@
 from pydantic import BaseModel 
 
+class TagList(BaseModel):
+    """List of tags"""
+    tags: list[str]
+
 class IdeaVerificationBool(BaseModel):
     """Boolean response for idea verification"""
     needs_work: bool

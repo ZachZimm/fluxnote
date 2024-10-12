@@ -29,7 +29,7 @@ def replace_double_quotes_within_string(json_string):
     result = re.sub(pattern, replacement, json_string)
     return result
 
-# This function is only used for the Summary model, maybe it should be renamed and/or moved
+# This function parses structured JSON output from the LLM and returns an object of the model type passed in
 def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_title: str = "", summary_tags: list[str] = []) -> Dict[str, Any]:
     # This function santizes JSON output from the LLM and returns an object of the model type passed in 
     result: Dict[str, Any] = {"error": False, "object": None}
@@ -95,13 +95,16 @@ def parse_llm_output(model_class: Type[BaseModel], llm_output: str, summary_titl
             if ']' not in llm_output:
                 post = ' ] }'
                 llm_output = llm_output + post
+            # Add the fields that the LLM does not generate in its initial output
+            summary_dict["title"] = summary_title
+            summary_dict["tags"] = summary_tags
+        
+        elif model_class.__name__ == "TagList":
+            # Ensure that all quotes are double quotes
+            llm_output = llm_output.replace("'", '"')
         
         # Parse the JSON string into a dictionary
         summary_dict = json.loads(llm_output.strip())
-
-        # Add the fields that the LLM does not generate in its initial output
-        summary_dict["title"] = summary_title
-        summary_dict["tags"] = summary_tags
         # Validate and create the model object
         summary_obj = model_class(**summary_dict)
         result["object"] = summary_obj

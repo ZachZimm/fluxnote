@@ -8,7 +8,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from utils import read_config, parse_llm_output
 from fastapi import WebSocket
-from models.Summary import Summary, Idea, IdeaVerificationBool
+from models.Summary import Summary, Idea, IdeaVerificationBool, TagList
 from models.WikiData import WikiData
 from pymongo import MongoClient
 import embeddings
@@ -350,6 +350,64 @@ class langchain_interface():
 
         return _embeddings
 
+    def update_all_tags(self, tags: list) -> bool:
+        # This function will replace the current list of all tags for the user with the provided list
+        update = {"$set": {"tags": tags}}
+        result = self.db["config"].update_one({"userid": self.userid}, update)
+        return True
+
+    def get_all_tags(self) -> list:
+        try:
+            # This function returns the most up to date list of tags for the user from the database
+            result = self.db["config"].find_one({"userid": self.userid})["tags"]
+            return result
+
+        except Exception as e:
+            print(f"Error in get_all_tags: {e}")
+            return []
+        
+    async def tag_idea(self, idea: Idea, num_tags: int = 5, create_new_tags: bool = True) -> list:
+        # This function uses the LLM to analyze the idea and return a list of tags
+        tags = idea.tags
+        all_tags = self.get_all_tags()
+        config = self.get_config()
+        system_prompts = self.get_chat_characters()
+        max_tokens = 200
+        temperature = 0.6
+
+        chain = self.create_llm_chain(config, max_tokens, temperature)
+        _history = []
+        _history.append(SystemMessage(content=system_prompts["Idea-Tagger"]))
+        may_create_new_tags = "may" if create_new_tags else "may not"
+        idea_tagger_prompt = f"The list of all existing tags for this user is {str(all_tags)}. The current tags for this idea are {str(idea.tags)}. Aim to return {str(num_tags)} relevant new tags for this idea in your response list. You {may_create_new_tags} create new tags which are not present in the previous list. The idea to be tagged is: {idea.idea}. Do not return any commentary, repeat the idea or write any code, only return a structured list of relevant tags which conforms to the provided JSON schema. The new list of tags for this idea is:"
+        _history.append(HumanMessage(content=idea_tagger_prompt))
+
+        assistant_message = await chain.ainvoke(_history)
+        print("system prompt: ", system_prompts["Idea-Tagger"])
+        print("tagger prompt: ", idea_tagger_prompt)
+        print("\nassistant_message: ", assistant_message)
+
+        initial_tagging_result = parse_llm_output(TagList, assistant_message)
+        if initial_tagging_result["error"]:
+            print("Error while tagging idea\n Exiting...")
+            return idea.tags
+        new_tags: TagList = initial_tagging_result["object"]
+        print(f"Inital response: {initial_tagging_result}")
+        print(f"New tags: {new_tags}")
+        print(f"New tags: {new_tags.tags}")
+        tags = list(set(new_tags.tags + tags))
+        print(f"New tags: {tags}")
+
+        new_tags_b = False
+        for tag in tags:
+            if tag not in all_tags:
+                new_tags_b = True
+                break
+        if new_tags_b:
+            self.update_all_tags(list(set(tags + all_tags)))
+
+        return tags
+
     async def verify_idea(self, idea: Idea, source_text: str) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
@@ -366,6 +424,8 @@ class langchain_interface():
         # This will consist of a system message about determining whether the provided idea stands on its own, without providing the source text
         # If false, then a much stronger worded version of the Idea-Verifier prompt will be used which instructs the model specifically to correct the idea- rather than determine if it is correct and potentially provide a new idea
         _history.append(SystemMessage(content=system_prompts["Idea-Verifier-Bool"]))
+        bool_verification_prompt = f"Is the following idea in need of improvement? Idea: {idea.idea}"
+        _history.append(HumanMessage(content=bool_verification_prompt))
         assistant_message = await chain.ainvoke(_history)
         if 'True' in assistant_message:
             assistant_message.replace('True', 'true', 1)
