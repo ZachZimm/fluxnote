@@ -227,6 +227,12 @@ def get_summary(websocket, lc_interface, title, help=False) -> tuple[str, str]:
     summary = lc_interface.get_summary_str(title)
     return summary, "summary"
 
+def get_idea_tags(websocket, lc_interface, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all idea tags.", "help"
+    tags = lc_interface.get_all_idea_tags_str()
+    return tags, "status"
+
 def get_summaries_by_tag(websocket, lc_interface, tag, help=False) -> tuple[str, str]:
     if help == True:
         return "Get all summaries with a specified tag.", "help"
@@ -469,6 +475,7 @@ available_request_functions = {
     "summarize_article": summarize_article,
     "summarize_file": summarize_file,
     "get_summary": get_summary,
+    "get_idea_tags": get_idea_tags,
     "get_summaries": get_summaries,
     "get_summaries_by_tag": get_summaries_by_tag,
     "get_summaries_by_tag_list": get_summaries_by_tag_list,

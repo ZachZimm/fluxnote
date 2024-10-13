@@ -204,7 +204,6 @@ class langchain_interface():
     def get_list_of_articles_str(self) -> str:
         return json.dumps(self.get_list_of_articles())
 
-
     def get_list_of_summaries(self) -> list:
         # get all the summaries from the database with this userid
         summaries = self.db["summary"].find({"userid": self.userid})
@@ -409,13 +408,13 @@ class langchain_interface():
 
         return _embeddings
 
-    def update_all_tags(self, tags: list) -> bool:
+    def update_all_idea_tags(self, tags: list) -> bool:
         # This function will replace the current list of all tags for the user with the provided list
         update = {"$set": {"tags": tags}}
         result = self.db["config"].update_one({"userid": self.userid}, update)
         return True
 
-    def get_all_tags(self) -> list:
+    def get_all_idea_tags(self) -> list:
         try:
             # This function returns the most up to date list of tags for the user from the database
             result = self.db["config"].find_one({"userid": self.userid})["tags"]
@@ -424,6 +423,9 @@ class langchain_interface():
         except Exception as e:
             print(f"Error in get_all_tags: {e}")
             return []
+    
+    def get_all_idea_tags_str(self) -> str:
+        return json.dumps(self.get_all_idea_tags())
         
     async def tag_idea(self, idea: Idea, num_tags: int = 6, create_new_tags: bool = True) -> list:
         # This function uses the LLM to analyze the idea and return a list of tags
@@ -433,7 +435,7 @@ class langchain_interface():
             return tags
             # Return the tags if the idea already has enough tags - this is to prevent endless unneeded tagging and allows for re-trying failed tagging
 
-        all_tags = self.get_all_tags()
+        all_tags = self.get_all_idea_tags()
         config = self.get_config()
         system_prompts = self.get_chat_characters()
         max_tokens = 250
@@ -468,7 +470,7 @@ class langchain_interface():
                 new_tags_b = True
                 break
         if new_tags_b:
-            self.update_all_tags(list(set(tags + all_tags)))
+            self.update_all_idea_tags(list(set(tags + all_tags)))
 
         return tags
 
