@@ -267,6 +267,65 @@ class langchain_interface():
         summaries = self.get_summaries_by_tag_list(tags)
         return self.summary_list_to_str(summaries) 
 
+    # TODO test these functions
+    def get_summaries_by_idea_tag(self, tag: str) -> list:
+        summaries = self.db["summary"].find({"userid": self.userid, "idea_tags": tag})
+        summaries_obj = list(summaries)
+        return summaries_obj
+
+    def get_summaries_by_idea_tag_list(self, tags: list) -> list:
+        summaries = self.db["summary"].find({"userid": self.userid, "idea_tags": {"$all": tags}})
+        summaries_obj = list(summaries)
+        return summaries_obj
+    
+    def get_summaries_by_idea_tag_str(self, tag: str) -> str:
+        summaries = self.get_summaries_by_idea_tag(tag)
+        return self.summary_list_to_str(summaries)
+    
+    def get_summaries_by_idea_tag_list_str(self, tags: list) -> str:
+        summaries = self.get_summaries_by_idea_tag_list(tags)
+        return self.summary_list_to_str(summaries)
+    
+    def idea_list_to_str(self, ideas: list) -> str:
+        idea_str = ""
+        i = 0
+        for idea in ideas:
+            i += 1
+            idea_str += "\n " + str(i) + ": " + idea["idea"]
+        return idea_str
+    
+    def get_ideas_by_tag(self, tag: str) -> list:
+        # retrieves all summaries which contain the provided tag in their idea tags list and have a matching userid, then searching through all of those summaries it builds up a new summary object of only the ideas which contain the provided tag
+        summaries = self.db["summary"].find({"userid": self.userid, "idea_tags": tag})
+        summaries_obj = list(summaries)
+        idea_list = []
+        for summary in summaries_obj:
+            for idea in summary["summary"]:
+                if tag in idea["tags"]:
+                    idea_list.append(idea)
+        return idea_list
+    
+    def get_ideas_by_tag_list(self, tags: list) -> list:
+        # retrieves all summaries which contain all of the provided tags in their idea tags list and have a matching userid, then searching through all of those summaries it builds up a new summary object of only the ideas which contain all of the provided tags
+        summaries = self.db["summary"].find({"userid": self.userid, "idea_tags": {"$all": tags}})
+        summaries_obj = list(summaries)
+        idea_list = []
+        for summary in summaries_obj:
+            for idea in summary["summary"]:
+                if all(tag in idea["tags"] for tag in tags):
+                    idea_list.append(idea)
+        return idea_list
+    
+    def get_ideas_by_tag_str(self, tag: str) -> str:
+        ideas = self.get_ideas_by_tag(tag)
+        return self.idea_list_to_str(ideas)
+
+    def get_ideas_by_tag_list_str(self, tags: list) -> str:
+        ideas = self.get_ideas_by_tag_list(tags)
+        return self.idea_list_to_str(ideas)
+    
+    # end functions to test
+
     def append_summary(self, summary: Summary) -> str:
         # update the database:
         update = {"$set": {"summary": summary.model_dump()["summary"], "title": summary.title, "tags": summary.tags, "idea_tags": summary.idea_tags, "userid": self.userid}}
@@ -492,7 +551,7 @@ class langchain_interface():
         summary_idea_tags = []
         for idea in summary.summary:
             summary_idea_tags += idea.tags
-        summary_idea_tags = list(set(summary_idea_tags))
+        summary_idea_tags = list(set(summary_idea_tags)) # Remove duplicates
         summary.idea_tags = summary_idea_tags
         return summary
 

@@ -239,7 +239,7 @@ def get_summaries_by_tag_list(websocket, lc_interface, tags, strict=False, help=
     summaries = ""
     if not strict:
         for tag in tags:
-            summaries += lc_interface.get_summaries_by_tag_str(tag) + "\n"
+            summaries += lc_interface.get_summaries_by_tag_str(tag) + " \n "
     else:
         summaries = lc_interface.get_summaries_by_tag_list_str(tags)
     return summaries, "status"
@@ -257,7 +257,37 @@ def read_summaries_by_tag_list(websocket, lc_interface, tags, strict=False, help
     summary_text, _ = get_summaries_by_tag_list(websocket, lc_interface, tags, strict)
     lc_interface.append_history(summary_text) # Save to history
     return f"Summaries with tags {', '.join(tags)} added to history", "status"
-    
+
+def get_ideas_by_tag(websocket, lc_interface, tag, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all ideas with a specified tag.", "help"
+    ideas = lc_interface.get_ideas_by_tag_str(tag)
+    return ideas, "status"
+
+def get_ideas_by_tag_list(websocket, lc_interface, tags, strict=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Get all ideas matching all tags in the list or gets all ideas which match any of the tags in the provided list.", "help"
+    ideas = ""
+    if not strict:
+        for tag in tags:
+            ideas += lc_interface.get_ideas_by_tag_str(tag) + " \n"
+    else:
+        ideas = lc_interface.get_ideas_by_tag_list_str(tags)
+    return ideas, "status"
+
+def read_ideas_by_tag(websocket, lc_interface, tag, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Reads ideas into chat history by tag.", "help"
+    ideas_text, _ = get_ideas_by_tag(websocket, lc_interface, tag)
+    lc_interface.append_history(ideas_text) # Save to history
+    return f"Ideas with tag {tag} added to history", "status"
+
+def read_ideas_by_tag_list(websocket, lc_interface, tags, strict=False, help=False) -> tuple[str, str]:
+    if help == True:
+        return "Reads ideas into chat history by tag list. The strict option determines whether all tags must match, or just a single tag must match.", "help"
+    ideas_text, _ = get_ideas_by_tag_list(websocket, lc_interface, tags, strict)
+    lc_interface.append_history(ideas_text) # Save to history
+    return f"Ideas with tags {', '.join(tags)} added to history", "status"
 
 def get_summaries(websocket, lc_interface, help=False) -> tuple[str, str]:
     if help == True:
@@ -442,6 +472,10 @@ available_request_functions = {
     "get_summaries": get_summaries,
     "get_summaries_by_tag": get_summaries_by_tag,
     "get_summaries_by_tag_list": get_summaries_by_tag_list,
+    "get_ideas_by_tag": get_ideas_by_tag,
+    "get_ideas_by_tag_list": get_ideas_by_tag_list,
+    "read_ideas_by_tag": read_ideas_by_tag,
+    "read_ideas_by_tag_list": read_ideas_by_tag_list,
     "read_summary": read_summary,
     "read_summaries_by_tag": read_summaries_by_tag,
     "read_summaries_by_tag_list": read_summaries_by_tag_list,
