@@ -474,6 +474,45 @@ class langchain_interface():
 
         return tags
 
+    async def tag_summary(self, summary: Summary, num_tags: int = 10, create_new_tags: bool = False) -> list:
+        # This function should be run after the ideas in the summary have been verified
+        # This function will provide the llm with the summary and the list of idea tags, and the llm will choose the num_tags most relevant tags for the summary
+        
+        config = self.get_config()
+        all_tags = self.get_all_idea_tags()
+        system_prompts = self.get_chat_characters()
+        max_tokens = 250
+        temperature = 0.5
+
+        chain = self.create_llm_chain(config, max_tokens, temperature)
+        _history = []
+        _history.append(SystemMessage(content=system_prompts["Summary-Tagger"]))
+        may_create_new_tags = "may" if create_new_tags else "may not"
+        summary_tagger_prompt = f"The current tags for this summary are {str(summary.idea_tags)}. Return {str(num_tags)} relevant new tags for this summary in your response list, and do not exceed this number. You {may_create_new_tags} create new tags which are not present in the previous list. The ideas contained in the summary to be tagged are: {str(summary.summary)}. Do not return any commentary, do not repeat the ideas, and do not write any code, only return a JSON structured list of relevant tags which conforms to the provided JSON schema. The new list of tags for this summary is:"
+        _history.append(HumanMessage(content=summary_tagger_prompt))
+        assistant_message = await chain.ainvoke(_history)
+
+        initial_tagging_result = parse_llm_output(TagList, assistant_message)
+        if initial_tagging_result["error"]:
+            print("Error while tagging summary\n Exiting...")
+            return summary.tags
+        new_tags: TagList = initial_tagging_result["object"]
+        print(f"New tags: {new_tags.tags}")
+
+        if len(new_tags.tags) > num_tags: # If the model returns more tags than requested, only use the first num_tags
+            new_tags.tags = new_tags.tags[:num_tags]
+
+        tags = list(set(new_tags.tags + summary.tags))
+        new_tags_b = False
+        for tag in tags:
+            if tag not in all_tags:
+                new_tags_b = True
+                break
+        if new_tags_b:
+            self.update_all_idea_tags(list(set(tags + all_tags)))
+
+        return tags
+        
     async def verify_idea(self, idea: Idea, source_text: str, is_discerning: bool = True) -> Idea:
         # This function should be used to verify the idea and return a corrected version
         # Or it will return the original idea if it is correct
@@ -535,7 +574,7 @@ class langchain_interface():
 
         return new_idea
     
-    async def verify_summary(self, summary: Summary, source_text: str, num_tags: int = 6, untagged_only: bool = True) -> Summary:
+    async def verify_summary(self, summary: Summary, source_text: str, num_tags: int = 6, num_summary_tags: int = 10, untagged_only: bool = True) -> Summary:
         i = -1
         for idea in summary.summary:
             i += 1
@@ -555,6 +594,7 @@ class langchain_interface():
             summary_idea_tags += idea.tags
         summary_idea_tags = list(set(summary_idea_tags)) # Remove duplicates
         summary.idea_tags = summary_idea_tags
+        summary.tags = await self.tag_summary(summary, num_tags = num_summary_tags)
         return summary
 
     async def langchain_summarize_text_async(self, text: str, history: list = [], max_tokens: int = 2048, temperature: float = 0.6, title="", tags=[]) -> tuple[list, Summary]:
