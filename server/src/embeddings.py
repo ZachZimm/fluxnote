@@ -26,6 +26,24 @@ def get_simple_similarity(embeddings, embeddings_2, asFloat16=True):
 
     return {"colbert": colbert_similarity, "dense": dense_similarity}
 
+def get_simple_similarity_from_list(embeddings, embeddings_list, k=5, asFloat16=True):
+    # This function is the same as the above, although the second argument is a list of embeddings and it returns the top k similarities
+    colbert_similarities = {}
+    dense_similarities = {}
+    sorted_similarity_list = []
+    for key in embeddings_list:
+        colbert_similarity_mat = embeddings['colbert_vecs'] @ embeddings_list[key]['colbert_vecs'].T
+        colbert_similarities[key] = colbert_similarity_mat.mean()
+        dense_similarity_mat = embeddings['dense_vecs'] @ embeddings_list[key]['dense_vecs'].T
+        dense_similarities[key] = dense_similarity_mat.mean()
+    if not asFloat16:
+        sorted_similarity_list = sorted([(key, float(dense_similarities[key])) for key in dense_similarities], key=lambda x: x[1], reverse=True)
+    else:
+        sorted_similarity_list = sorted([(key, dense_similarities[key]) for key in dense_similarities], key=lambda x: x[1], reverse=True)
+
+    return sorted_similarity_list[:k]
+
+
 def get_full_similarity(embeddings, embeddings_2):
     colbert_similarity_mat = embeddings['colbert_vecs'] @ embeddings_2['colbert_vecs'].T
     dense_similarity_mat = embeddings['dense_vecs'] @ embeddings_2['dense_vecs'].T
